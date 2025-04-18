@@ -1,15 +1,25 @@
 package com.gaser.docCollab.UI;
 
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+
+import com.gaser.docCollab.server.OperationType;
+
 import java.awt.*;
 
 public class MainDocumentPanel extends JPanel {
     private JTextArea textArea;
     private String currentFileName = "Untitled.txt";
     private JLabel fileNameLabel;
+    private UIController controller;
+    private boolean isLocalChange = true;
     
-    public MainDocumentPanel() {
+    public MainDocumentPanel(UIController controller) {
+        this.controller = controller;
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
     }
@@ -29,6 +39,47 @@ public class MainDocumentPanel extends JPanel {
         textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
+        
+        // Add document listener to track changes
+        textArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                if (isLocalChange && controller != null) {
+                    try {
+                        int pos = e.getOffset();
+                        String addedText = textArea.getText(pos, e.getLength());
+                        for (int i = 0; i < addedText.length(); i++) {
+                            controller.onCharacterChange(addedText.charAt(i), pos + i, OperationType.INSERT);
+                        }
+                    } catch (BadLocationException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                if (isLocalChange && controller != null) {
+                    int pos = e.getOffset();
+                    controller.onCharacterChange(' ', pos, OperationType.DELETE);
+                }
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                // Plain text components do not fire these events
+            }
+        });
+        
+        // Add caret listener to track cursor position
+        textArea.addCaretListener(new CaretListener() {
+            @Override
+            public void caretUpdate(CaretEvent e) {
+                if (isLocalChange && controller != null) {
+                    controller.onCursorChange(e.getDot());
+                }
+            }
+        });
         
         JScrollPane scrollPane = new JScrollPane(textArea);
         
@@ -71,5 +122,50 @@ public class MainDocumentPanel extends JPanel {
      */
     public boolean hasOpenDocument() {
         return textArea != null;
+    }
+    
+    /**
+     * Updates the document content from remote changes
+     * @param content The new content
+     */
+    public void updateDocumentContent(String content) {
+        if (textArea != null) {
+            isLocalChange = false;
+            textArea.setText(content);
+            isLocalChange = true;
+        }
+    }
+    
+    /**
+     * Updates document at specific position (for collaborative editing)
+     * @param character The character to insert
+     * @param position The position to insert at
+     */
+    public void insertCharacter(char character, int position) {
+        if (textArea != null) {
+            try {
+                isLocalChange = false;
+                textArea.getDocument().insertString(position, String.valueOf(character), null);
+                isLocalChange = true;
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    /**
+     * Removes character at specific position (for collaborative editing)
+     * @param position The position to remove from
+     */
+    public void removeCharacter(int position) {
+        if (textArea != null) {
+            try {
+                isLocalChange = false;
+                textArea.getDocument().remove(position, 1);
+                isLocalChange = true;
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

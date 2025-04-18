@@ -1,13 +1,14 @@
 package com.gaser.docCollab.server;
+import java.time.Instant;
 
 public class Operation {
   private OperationType operationType;
-  private String UID;
-  private String time;
+  private int UID;
+  private Instant time;
   private Character value;
   private String parentId;
 
-  public Operation(OperationType operationType, String UID, String time, Character value, String parentId) {
+  public Operation(OperationType operationType, int UID, Instant time, Character value, String parentId) {
     this.operationType = operationType;
     this.UID = UID;
     this.time = time;
@@ -23,19 +24,23 @@ public class Operation {
     this.operationType = operationType;
   }
 
-  public String getUID() {
+  public int getUID() {
     return UID;
   }
 
-  public void setUID(String UID) {
+  public String getID() { // node id
+    return UID +"," +time;
+  }
+
+  public void setUID(int UID) {
     this.UID = UID;
   }
 
-  public String getTime() {
+  public Instant getTime() {
     return time;
   }
 
-  public void setTime(String time) {
+  public void setTime(Instant time) {
     this.time = time;
   }
 

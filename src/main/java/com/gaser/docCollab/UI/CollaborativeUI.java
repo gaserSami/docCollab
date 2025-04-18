@@ -3,8 +3,8 @@ package com.gaser.docCollab.UI;
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
-import java.util.List;
-import javax.swing.Timer;
+
+import com.gaser.docCollab.client.MyStompClient;
 
 
 public class CollaborativeUI extends JFrame {
@@ -12,6 +12,7 @@ public class CollaborativeUI extends JFrame {
     private MainDocumentPanel mainPanel;
     private TopBarPanel topBarPanel;
     private UIController controller;
+    private MyStompClient client;
     
     public CollaborativeUI() {
         setTitle("Collaborative Tool");
@@ -28,16 +29,13 @@ public class CollaborativeUI extends JFrame {
         // Set up the layout
         layoutComponents();
         
-        // Add some initial data
-        sidebarPanel.updateActiveUsers(Arrays.asList("User 1 (You)"));
-        
         setVisible(true);
     }
     
     private void initComponents() {
         // Create modular components
         sidebarPanel = new SidebarPanel();
-        mainPanel = new MainDocumentPanel();
+        mainPanel = new MainDocumentPanel(controller);
         topBarPanel = new TopBarPanel(controller);
     }
     
@@ -65,6 +63,14 @@ public class CollaborativeUI extends JFrame {
     public void updateSessionCode(String code) {
         topBarPanel.updateSessionCode(code);
     }
+
+    public void setClient(MyStompClient client) {
+        this.client = client;
+    }
+
+    public MyStompClient getClient() {
+        return client;
+    }
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -74,11 +80,8 @@ public class CollaborativeUI extends JFrame {
                 e.printStackTrace();
             }
             CollaborativeUI ui = new CollaborativeUI();
-            
-            // Example of updating users after delay
-            new Timer(2000, e -> ui.getSidebarPanel().updateActiveUsers(
-                Arrays.asList("User 1 (You)", "User 2", "User 3")
-            )).start();
+            MyStompClient client = new MyStompClient(new Random().nextInt(100) , ui);
+            ui.setClient(client);
         });
     }
 }

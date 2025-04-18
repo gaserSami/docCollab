@@ -2,7 +2,13 @@ package com.gaser.docCollab.UI;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
+
+import com.gaser.docCollab.server.Operation;
+import com.gaser.docCollab.server.OperationType;
+import com.gaser.docCollab.websocket.Cursor;
+
 import java.io.*;
+import java.time.Instant;
 import java.util.Random;
 import java.util.Scanner;
 import java.awt.*;
@@ -18,8 +24,40 @@ public class UIController {
      * Handles the join button click event
      */
     public void handleJoinButtonClick() {
+        // TODO
         System.out.println("Join button clicked");
-        // Add your join functionality here
+        this.ui.getClient().disconnectFromWebSocket();
+        String sessionCode = ui.getTopBarPanel().getSessionCode();
+        if (sessionCode.isEmpty()) {
+            JOptionPane.showMessageDialog(ui, "Please enter a session code.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        ui.getClient().connectToWebSocket(sessionCode);
+        System.out.println("user joined session: " + sessionCode);
+    }
+
+    /**
+     * Handles text changes at the character level
+     * @param character The character that was added or removed
+     * @param position The position/index where the change occurred
+     * @param isAddition True if character was added, false if removed
+     */
+    public void onCharacterChange(char character, int position, OperationType operationType) {
+        System.out.println("charcter changed: " + character + " at position: " + position);
+        this.ui.getClient().sendOperation(new Operation(
+            operationType, ui.getClient().getUID(), 
+            Instant.now(),
+            character, 
+            this.ui.getClient().getCrdt().getNodeFromPosition(position).getPrev().getID()
+        ));
+    }
+
+    public void onCursorChange(int position) {
+        System.out.println("cursor changed: " + position);
+        this.ui.getClient().sendCursor(new Cursor(
+        ui.getClient().getUID(), 
+        position
+        ));
     }
     
     /**

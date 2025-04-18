@@ -1,22 +1,22 @@
-package com.gaser.docCollab.server;
+package com.gaser.docCollab.client;
 
-/**
- * Represents a character node in the CRDT structure.
- * Contains the character value, a unique IDentifier, and position information.
- */
+import java.time.Instant;
+
 public class CharacterNode {
-    private Character value; // A character value
-    private String ID; // uID,time
+  private Character value;
+    private Instant time;
+    private int UID;
     private CharacterNode prev;
     private CharacterNode next;
-    private boolean isDeleted; // Flag to indicate if the node is deleted
+    private boolean isDeleted;
 
-    public CharacterNode(Character value, String ID) {
+    public CharacterNode(Character value, Instant time, int UID) {
         this.value = value;
-        this.ID = ID;
+        this.time = time;
+        this.UID = UID;
         this.prev = null;
         this.next = null;
-        this.isDeleted = false; // Default to not deleted
+        this.isDeleted = false;
     }
     
     public Character getValue() {
@@ -27,12 +27,20 @@ public class CharacterNode {
         this.value = value;
     }
 
-    public String getID() {
-        return ID;
+   public Instant getTime() {
+        return time;
     }
 
-    public void setID(String ID) {
-        this.ID = ID;
+    public void setTime(Instant time) {
+        this.time = time;
+    }
+
+    public int getUID() {
+        return UID;
+    }
+
+    public void setUID(int UID) {
+        this.UID = UID;
     }
 
     public CharacterNode getPrev() {
@@ -57,5 +65,9 @@ public class CharacterNode {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+    
+    public String getID() {
+        return UID + "," + time.toString();
     }
 }

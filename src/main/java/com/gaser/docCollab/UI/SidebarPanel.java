@@ -1,4 +1,5 @@
 package com.gaser.docCollab.UI;
+import com.gaser.docCollab.websocket.COLORS;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -75,24 +76,27 @@ public class SidebarPanel extends JPanel {
     }
     
     /**
-     * Custom renderer for the active users list
-     */
-    private class ActiveUserRenderer extends DefaultListCellRenderer {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, 
-                                                    int index, boolean isSelected, 
-                                                    boolean cellHasFocus) {
-            JLabel label = (JLabel) super.getListCellRendererComponent(
-                list, value, index, isSelected, cellHasFocus);
-            
-            label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-            
-            if (!isSelected) {
-                label.setBackground(new Color(230, 230, 235));
-                label.setForeground(Color.BLACK);
-            }
-            
-            return label;
+ * Custom renderer for the active users list
+ */
+private class ActiveUserRenderer extends DefaultListCellRenderer {
+    @Override
+    public Component getListCellRendererComponent(JList<?> list, Object value, 
+                                                int index, boolean isSelected, 
+                                                boolean cellHasFocus) {
+        JLabel label = (JLabel) super.getListCellRendererComponent(
+            list, value, index, isSelected, cellHasFocus);
+        
+        label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
+        if (!isSelected) {
+            label.setBackground(new Color(230, 230, 235));
+            // Use the COLORS class to set a different color for each user
+            // Use modulo to cycle through available colors if there are more users than colors
+            String colorHex = COLORS.getColor(index % 4);
+            label.setForeground(Color.decode(colorHex));
         }
+        
+        return label;
     }
+}
 }

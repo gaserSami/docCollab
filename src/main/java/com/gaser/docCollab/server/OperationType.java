@@ -1,6 +1,6 @@
 package com.gaser.docCollab.server;
 
-enum OperationType {
+public enum OperationType {
   INSERT,
   DELETE
 }
