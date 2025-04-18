@@ -1,16 +1,14 @@
 package com.gaser.docCollab.client;
 
-import java.time.Instant;
-
 public class CharacterNode {
-  private Character value;
-    private Instant time;
+    private Character value;
+    private int time;
     private int UID;
     private CharacterNode prev;
     private CharacterNode next;
     private boolean isDeleted;
 
-    public CharacterNode(Character value, Instant time, int UID) {
+    public CharacterNode(Character value, int time, int UID) {
         this.value = value;
         this.time = time;
         this.UID = UID;
@@ -18,7 +16,7 @@ public class CharacterNode {
         this.next = null;
         this.isDeleted = false;
     }
-    
+
     public Character getValue() {
         return value;
     }
@@ -27,11 +25,11 @@ public class CharacterNode {
         this.value = value;
     }
 
-   public Instant getTime() {
+    public int getTime() {
         return time;
     }
 
-    public void setTime(Instant time) {
+    public void setTime(int time) {
         this.time = time;
     }
 
@@ -66,8 +64,8 @@ public class CharacterNode {
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
     }
-    
+
     public String getID() {
-        return UID + "," + time.toString();
+        return UID + "," + String.valueOf(time);
     }
 }

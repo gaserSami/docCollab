@@ -13,7 +13,7 @@ import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.websocket.Cursor;
 import com.gaser.docCollab.websocket.Message;
 
-public class MyStompSessionHandler extends StompSessionHandlerAdapter{
+public class MyStompSessionHandler extends StompSessionHandlerAdapter {
   private MyStompClient stompClient;
 
   public MyStompSessionHandler(MyStompClient stompClient) {
@@ -21,14 +21,13 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter{
   }
 
   @Override
-    public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
-        System.out.println("Client Connected");
+  public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+    System.out.println("Client Connected");
 
-
-    }
+  }
 
   @Override
-    public void handleTransportError(StompSession session, Throwable exception) {
-        exception.printStackTrace();
-    }
+  public void handleTransportError(StompSession session, Throwable exception) {
+    exception.printStackTrace();
+  }
 }

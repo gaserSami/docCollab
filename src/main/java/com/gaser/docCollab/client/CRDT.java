@@ -1,5 +1,5 @@
 package com.gaser.docCollab.client;
-import java.time.Instant;
+
 import java.util.HashMap;
 
 import java.util.concurrent.locks.Lock;
@@ -14,54 +14,58 @@ public class CRDT {
   Lock writeLock = new ReentrantReadWriteLock().writeLock();
 
   public CRDT() {
-    this.head = new CharacterNode('#', Instant.MAX, 0);
+    this.head = new CharacterNode('#', Integer.MAX_VALUE, 0);
     this.map = new HashMap<>();
-    map.put(String.valueOf(0)+Instant.MAX, head);
+    map.put(String.valueOf(0) + "," + Integer.MAX_VALUE, head);
   }
 
-  public void handleOperation(Operation operation){
-    if(operation.getOperationType() == OperationType.INSERT){
-      insert(operation.getParentId(), operation.getValue(), operation.getUID(), Instant.now());
-    } else{
-      markAsDeleted(operation.getID());
+  public void handleOperation(Operation operation) {
+    if (operation.getOperationType() == OperationType.INSERT) {
+      insert(operation.getParentId(), operation.getValue(), operation.getUID(), operation.getTime());
+    } else {
+      System.out
+          .println("Node with ID: " + operation.getParentId() + " exists in map: "
+              + map.containsKey(operation.getParentId()));
+      markAsDeleted(operation.getParentId());
     }
     // TODO handle redo and undo
   }
 
-  public void insert(String parentID, Character value, int UID, Instant time){
-    try{
+  public void insert(String parentID, Character value, int UID, int time) {
+    try {
       writeLock.lock();
       CharacterNode newNode = new CharacterNode(value, time, UID);
       insert(parentID, newNode);
-    } finally{
+    } finally {
       writeLock.unlock();
     }
   }
 
-  private void insert(String parentID, CharacterNode newNode){
+  private void insert(String parentID, CharacterNode newNode) {
     CharacterNode parentNode = map.get(parentID);
     CharacterNode siblingNode = parentNode.getNext();
-    
-    if(siblingNode == null){
+
+    if (siblingNode == null) {
       parentNode.setNext(newNode);
       newNode.setPrev(parentNode);
+      System.out.println("Inserting node with ID: " + newNode.getID() + " after node with ID: " + parentNode.getID());
       map.put(newNode.getID(), newNode);
       return;
     }
 
-    Instant siblingTime = siblingNode.getTime();
+    int siblingTime = siblingNode.getTime();
     int siblingUID = siblingNode.getUID();
-    Instant newNodeTime = newNode.getTime();
+    int newNodeTime = newNode.getTime();
     int newNodeUID = newNode.getUID();
 
     // Compare time
     // If times are equal, compare uids
-    int timeComparison = siblingTime.compareTo(newNodeTime);
+    int timeComparison = Integer.compare(siblingTime, newNodeTime);
     if (timeComparison > 0 || (timeComparison == 0 && siblingUID < newNodeUID)) {
       insert(siblingNode.getID(), newNode);
       return;
     }
-    
+
     // normal insertion
     newNode.setPrev(parentNode);
     newNode.setNext(parentNode.getNext());
@@ -72,22 +76,23 @@ public class CRDT {
     map.put(newNode.getID(), newNode);
   }
 
-  public void markAsDeleted(String id){
-    try{
+  public void markAsDeleted(String id) {
+    try {
       writeLock.lock();
       map.get(id).setDeleted(true);
-    }
-    finally{
+    } finally {
       writeLock.unlock();
     }
   }
 
-  public CharacterNode getNodeFromPosition(int position){
-    try{
+  public CharacterNode getNodeFromPosition(int position) {
+    CharacterNode current = null;
+    try {
       writeLock.lock();
-      CharacterNode current = head;
+      current = head;
       int index = 0;
       while (current != null) {
+        System.out.println("Current Idx: " + index + " Current Node: " + current.getValue());
         if (!current.isDeleted()) {
           if (index == position) {
             return current;
@@ -96,24 +101,23 @@ public class CRDT {
         }
         current = current.getNext();
       }
-    } finally{
+    } finally {
       writeLock.unlock();
     }
-    return null;
+    return current;
   }
 
-  public void markAsNotDeleted(String id){
-    try{
+  public void markAsNotDeleted(String id) {
+    try {
       writeLock.lock();
       map.get(id).setDeleted(false);
-    }
-    finally{
+    } finally {
       writeLock.unlock();
     }
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     CharacterNode current = head.getNext(); // skip the dummy head node
     while (current != null) {

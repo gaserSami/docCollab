@@ -3,10 +3,13 @@ package com.gaser.docCollab.websocket;
 public class Cursor {
   private int UID;
   private int pos;
-  
+
   public Cursor(int UID, int pos) {
     this.UID = UID;
     this.pos = pos;
+  }
+
+  public Cursor() {
   }
 
   public int getUID() {
@@ -28,8 +31,8 @@ public class Cursor {
   @Override
   public String toString() {
     return "Cursor{" +
-            "UID=" + UID +
-            ", pos=" + pos +
-            '}';
+        "UID=" + UID +
+        ", pos=" + pos +
+        '}';
   }
 }

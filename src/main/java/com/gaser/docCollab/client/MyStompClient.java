@@ -1,4 +1,5 @@
 package com.gaser.docCollab.client;
+
 import java.util.Collections;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
@@ -31,6 +32,7 @@ public class MyStompClient {
   private ArrayList<Integer> cursorPositions;
   private CRDT crdt;
   private CollaborativeUI ui;
+  private int lamportTime = 0;
 
   public MyStompClient(int UID, CollaborativeUI ui) {
     this.UID = UID;
@@ -38,143 +40,156 @@ public class MyStompClient {
     this.crdt = new CRDT();
     this.activeUserIds = new ArrayList<>();
     this.cursorPositions = new ArrayList<>();
-}
+  }
 
-public void onUserJoin(int UID){
-  activeUserIds.add(UID);
-  cursorPositions.add(0); 
-}
+  public int getLamportTime() {
+    return lamportTime;
+  }
 
-public void onUserLeave(int UID){
-  for(int i = 0; i < activeUserIds.size(); i++) {
-    if (activeUserIds.get(i).equals(UID)) {
-      activeUserIds.remove(i);
-      cursorPositions.remove(i);
-      break;
+  public void setLamportTime(int lamportTime) {
+    this.lamportTime = lamportTime;
+  }
+
+  public void incrementLamportTime() {
+    lamportTime++;
+  }
+
+  public void onUserJoin(int UID) {
+    activeUserIds.add(UID);
+    cursorPositions.add(0);
+  }
+
+  public void onUserLeave(int UID) {
+    for (int i = 0; i < activeUserIds.size(); i++) {
+      if (activeUserIds.get(i).equals(UID)) {
+        activeUserIds.remove(i);
+        cursorPositions.remove(i);
+        break;
+      }
     }
   }
-}
 
-public void onUserCursorChange(Cursor cursor) {
-  int UID = cursor.getUID();
-  int cursorPosition = cursor.getPos();
+  public void onUserCursorChange(Cursor cursor) {
+    int UID = cursor.getUID();
+    int cursorPosition = cursor.getPos();
 
-  for (int i = 0; i < activeUserIds.size(); i++) {
-    if (activeUserIds.get(i).equals(UID)) {
-      cursorPositions.set(i, cursorPosition);
-      break;
+    for (int i = 0; i < activeUserIds.size(); i++) {
+      if (activeUserIds.get(i).equals(UID)) {
+        cursorPositions.set(i, cursorPosition);
+        break;
+      }
     }
   }
-}
 
-public void listen(){
-  String tmp = "/topic/operations/" + getDocumentID();
+  public void listen() {
+    String tmp = "/topic/operations/" + getDocumentID();
     System.out.println(tmp);
 
-      session.subscribe("/topic/operations/" + getDocumentID(), new StompFrameHandler() {
-            @Override
-            public Type getPayloadType(StompHeaders headers) {
-                return String.class;
-            }
+    session.subscribe("/topic/operations/" + getDocumentID(), new StompFrameHandler() {
+      @Override
+      public Type getPayloadType(StompHeaders headers) {
+        return Operation.class;
+      }
 
-            @Override
-            public void handleFrame(StompHeaders headers, Object payload) {
-                System.out.println("received at /topic/operations/" + getDocumentID() );
-                try {
-                    if (payload instanceof String) {
-                        String operation = (String) payload;
-                       getCrdt().handleOperation(Operation.deserialize(operation));
-                        String crdtString = getCrdt().toString();
-                        System.out.println(crdtString);
-                        getUI().getMainPanel().updateDocumentContent(crdtString);
-                        System.out.println("Received operation: " + operation.toString());
-                    } else {
-                        System.out.println("Received unexpected payload type: " + payload.getClass());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        System.out.println("Client Subscribe to /topic/operations/"+getDocumentID());
-
-        /////////////////
-        session.subscribe("/topic/users/"+getDocumentID() , new StompFrameHandler() {
-          @Override
-          public Type getPayloadType(StompHeaders headers) {
-              return Message.class;
+      @Override
+      public void handleFrame(StompHeaders headers, Object payload) {
+        System.out.println("received at /topic/operations/" + getDocumentID());
+        try {
+          if (payload instanceof Operation) {
+            Operation operation = (Operation) payload;
+            if (operation.getUID() != getUID())
+              lamportTime = Math.max(lamportTime, operation.getTime()) + 1;
+            getCrdt().handleOperation(operation);
+            String crdtString = getCrdt().toString();
+            System.out.println(crdtString);
+            getUI().getMainPanel().updateDocumentContent(crdtString);
+            System.out.println("Received operation: " + operation.toString());
+          } else {
+            System.out.println("Received unexpected payload type: " + payload.getClass());
           }
-
-          @Override
-          public void handleFrame(StompHeaders headers, Object payload) {
-              try {
-                System.out.println("received at /topic/" + getDocumentID() + "/users");
-                  if (payload instanceof Message) {
-                      Message message = (Message) payload;
-                      Integer UID = message.getUID();
-                      String content = message.getContent();
-                      if("join".equals(content)){
-                        onUserJoin(UID);
-                        }else if("leave".equals(content)){
-                            onUserLeave(UID);
-                        }
-
-                      getUI().getSidebarPanel().updateActiveUsers(
-                      getActiveUserIds().stream()
-                          .map(id -> "User " + id)
-                          .collect(java.util.stream.Collectors.toList())
-                      );
-                      System.out.println("Received UID: " + UID.toString());
-                  } else {
-                      System.out.println("Received unexpected payload type: " + payload.getClass());
-                  }
-              } catch (Exception e) {
-                  e.printStackTrace();
-              }
-          }
-      });
-      System.out.println("Client Subscribe to /topic/users/"+getDocumentID());
-      ///////////////////
-      
-      session.subscribe("/topic/cursors/" + getDocumentID(), new StompFrameHandler() {
-        @Override
-        public Type getPayloadType(StompHeaders headers) {
-            return Cursor.class;
+        } catch (Exception e) {
+          e.printStackTrace();
         }
-
-        @Override
-        public void handleFrame(StompHeaders headers, Object payload) {
-            System.out.println("received at /topic/" +getDocumentID() + "/cursors");
-            try {
-                if (payload instanceof Cursor) {
-                    Cursor cursor = (Cursor) payload;
-                    onUserCursorChange(cursor);
-
-                    getUI().getSidebarPanel().updateActiveUsers(
-                    IntStream.range(0, getActiveUserIds().size())
-                        .mapToObj(idx -> {
-                            Integer id = getActiveUserIds().get(idx);
-                            Integer position = getCursorPositions().get(id);
-                            return "User " + id + "pos: " + position;
-                        })
-                        .collect(java.util.stream.Collectors.toList())
-                    );
-                    System.out.println("Received cursor: " + cursor.toString());
-                } else {
-                    System.out.println("Received unexpected payload type: " + payload.getClass());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+      }
     });
-    System.out.println("Client Subscribe to /topic/cursors/"+getDocumentID());
+    System.out.println("Client Subscribe to /topic/operations/" + getDocumentID());
+
+    /////////////////
+    session.subscribe("/topic/users/" + getDocumentID(), new StompFrameHandler() {
+      @Override
+      public Type getPayloadType(StompHeaders headers) {
+        System.out.println("Fy get payload type aho");
+        return Message.class;
+      }
+
+      @Override
+      public void handleFrame(StompHeaders headers, Object payload) {
+        System.out.println("E7na fy el topic users");
+        try {
+          System.out.println("received at /topic/" + getDocumentID() + "/users");
+          if (payload instanceof Message) {
+            Message message = (Message) payload;
+            Integer UID = message.getUID();
+            String content = message.getContent();
+            if ("join".equals(content)) {
+              onUserJoin(UID);
+            } else if ("leave".equals(content)) {
+              onUserLeave(UID);
+            }
+
+            getUI().getSidebarPanel().updateActiveUsers(
+                getActiveUserIds().stream()
+                    .map(id -> "User " + id)
+                    .collect(java.util.stream.Collectors.toList()));
+            System.out.println("Received UID: " + UID.toString());
+          } else {
+            System.out.println("Received unexpected payload type: " + payload.getClass());
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    System.out.println("Client Subscribe to /topic/users/" + getDocumentID());
+    ///////////////////
+
+    session.subscribe("/topic/cursors/" + getDocumentID(), new StompFrameHandler() {
+      @Override
+      public Type getPayloadType(StompHeaders headers) {
+        return Cursor.class;
+      }
+
+      @Override
+      public void handleFrame(StompHeaders headers, Object payload) {
+        System.out.println("received at /topic/" + getDocumentID() + "/cursors");
+        try {
+          if (payload instanceof Cursor) {
+            Cursor cursor = (Cursor) payload;
+            onUserCursorChange(cursor);
+
+            getUI().getSidebarPanel().updateActiveUsers(
+                IntStream.range(0, getActiveUserIds().size())
+                    .mapToObj(idx -> {
+                      Integer id = getActiveUserIds().get(idx);
+                      Integer position = getCursorPositions().get(idx);
+                      return "User " + id + "pos: " + position;
+                    })
+                    .collect(java.util.stream.Collectors.toList()));
+            System.out.println("Received cursor: " + cursor.toString());
+          } else {
+            System.out.println("Received unexpected payload type: " + payload.getClass());
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    System.out.println("Client Subscribe to /topic/cursors/" + getDocumentID());
     /////////////////////////
-}
+  }
 
-
-public void connectToWebSocket() {
-  try {
+  public void connectToWebSocket() {
+    try {
       List<Transport> transports = Collections.singletonList(new WebSocketTransport(new StandardWebSocketClient()));
       SockJsClient sockJsClient = new SockJsClient(transports);
       WebSocketStompClient stompClient = new WebSocketStompClient(sockJsClient);
@@ -185,32 +200,32 @@ public void connectToWebSocket() {
 
       session = stompClient.connectAsync(url, sessionHandler).get();
 
-  } catch (Exception e) {
-      e.printStackTrace();
-  }
-}
-
-public void disconnectFromWebSocket() {
-  if (session != null && session.isConnected()) {
-    try {
-      // First leave the current document to notify other users
-      leaveDocument(this.documentID);
-      
-      // Then disconnect the session
-      session.disconnect();
-      System.out.println("Disconnected from WebSocket for document: " + this.documentID);
-      
-      // Clear session reference
-      session = null;
-      
-      // Clear active users and cursor positions
-      activeUserIds.clear();
-      cursorPositions.clear();
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
-}
+
+  public void disconnectFromWebSocket() {
+    if (session != null && session.isConnected()) {
+      try {
+        // First leave the current document to notify other users
+        leaveDocument(this.documentID);
+
+        // Then disconnect the session
+        session.disconnect();
+        System.out.println("Disconnected from WebSocket for document: " + this.documentID);
+
+        // Clear session reference
+        session = null;
+
+        // Clear active users and cursor positions
+        activeUserIds.clear();
+        cursorPositions.clear();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
   // setters and getters
   public void setUID(int UID) {
@@ -247,12 +262,12 @@ public void disconnectFromWebSocket() {
 
   public void sendOperation(Operation operation) {
     if (session != null && session.isConnected()) {
-      session.send("/app/operations/" + documentID, operation.seralize());
+      session.send("/app/operations/" + documentID, operation);
       System.out.println("Client Sent Operation to /app/operations/" + documentID + " : " + operation.toString());
     } else {
       System.out.println("Session is not connected. Cannot send operation.");
     }
-}
+  }
 
   public void sendCursor(Cursor cursor) {
     if (session != null && session.isConnected()) {
@@ -261,27 +276,27 @@ public void disconnectFromWebSocket() {
     } else {
       System.out.println("Session is not connected. Cannot send cursor.");
     }
-}
-
-public void joinDocument(String documentID) {
-  this.documentID = documentID;
-  if (session != null && session.isConnected()) {
-    Message message = new Message(UID, "join");
-    session.send("/app/users/" + documentID, message);
-    System.out.println("Client Sent Join to /app/users/" + documentID);
-  } else {
-    System.out.println("Session is not connected. Cannot join document.");
   }
-}
 
-public void leaveDocument(String documentID) {
-  if (session != null && session.isConnected()) {
-    Message message = new Message(UID, "leave");
-    session.send("/app/users/" + documentID, message);
-    System.out.println("Client Sent Leave to /app/users/" + documentID);
-  } else {
-    System.out.println("Session is not connected. Cannot leave document.");
+  public void joinDocument(String documentID) {
+    this.documentID = documentID;
+    if (session != null && session.isConnected()) {
+      Message message = new Message(UID, "join");
+      session.send("/app/users/" + documentID, message);
+      System.out.println("Client Sent Join to /app/users/" + documentID);
+    } else {
+      System.out.println("Session is not connected. Cannot join document.");
+    }
   }
-}
+
+  public void leaveDocument(String documentID) {
+    if (session != null && session.isConnected()) {
+      Message message = new Message(UID, "leave");
+      session.send("/app/users/" + documentID, message);
+      System.out.println("Client Sent Leave to /app/users/" + documentID);
+    } else {
+      System.out.println("Session is not connected. Cannot leave document.");
+    }
+  }
 
 }
