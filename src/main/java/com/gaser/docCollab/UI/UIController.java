@@ -3,11 +3,16 @@ package com.gaser.docCollab.UI;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 
+import org.springframework.messaging.simp.stomp.StompFrameHandler;
+import org.springframework.messaging.simp.stomp.StompHeaders;
+
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
 import com.gaser.docCollab.websocket.Cursor;
+import com.gaser.docCollab.websocket.Message;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.Random;
 import java.util.Scanner;
@@ -26,13 +31,17 @@ public class UIController {
     public void handleJoinButtonClick() {
         // TODO
         System.out.println("Join button clicked");
-        this.ui.getClient().disconnectFromWebSocket();
+        // this.ui.getClient().disconnectFromWebSocket();
         String sessionCode = ui.getTopBarPanel().getSessionCode();
         if (sessionCode.isEmpty()) {
             JOptionPane.showMessageDialog(ui, "Please enter a session code.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        ui.getClient().connectToWebSocket(sessionCode);
+        ui.getClient().connectToWebSocket();
+        ui.getClient().setDocumentID(sessionCode);
+        ui.getClient().listen();
+        System.out.println("sessionCode from the top bar panel: "+ sessionCode);
+        ui.getClient().joinDocument(sessionCode);
         System.out.println("user joined session: " + sessionCode);
     }
 
@@ -44,12 +53,14 @@ public class UIController {
      */
     public void onCharacterChange(char character, int position, OperationType operationType) {
         System.out.println("charcter changed: " + character + " at position: " + position);
+        System.out.println("updated");
         this.ui.getClient().sendOperation(new Operation(
             operationType, ui.getClient().getUID(), 
             Instant.now(),
             character, 
-            this.ui.getClient().getCrdt().getNodeFromPosition(position).getPrev().getID()
-        ));
+            this.ui.getClient().getCrdt().getNodeFromPosition(position).getID()
+            ));
+        System.out.println("after");
     }
 
     public void onCursorChange(int position) {

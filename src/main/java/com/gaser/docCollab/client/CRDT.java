@@ -25,6 +25,7 @@ public class CRDT {
     } else{
       markAsDeleted(operation.getID());
     }
+    // TODO handle redo and undo
   }
 
   public void insert(String parentID, Character value, int UID, Instant time){
@@ -50,14 +51,15 @@ public class CRDT {
 
     Instant siblingTime = siblingNode.getTime();
     int siblingUID = siblingNode.getUID();
-    Instant newNodeTime = siblingNode.getTime();
-    int newNodeUID = siblingNode.getUID();
+    Instant newNodeTime = newNode.getTime();
+    int newNodeUID = newNode.getUID();
 
     // Compare time
     // If times are equal, compare uids
     int timeComparison = siblingTime.compareTo(newNodeTime);
     if (timeComparison > 0 || (timeComparison == 0 && siblingUID < newNodeUID)) {
       insert(siblingNode.getID(), newNode);
+      return;
     }
     
     // normal insertion
@@ -83,7 +85,7 @@ public class CRDT {
   public CharacterNode getNodeFromPosition(int position){
     try{
       writeLock.lock();
-      CharacterNode current = head.getNext(); // skip the dummy head node
+      CharacterNode current = head;
       int index = 0;
       while (current != null) {
         if (!current.isDeleted()) {

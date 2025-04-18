@@ -50,6 +50,7 @@ public class MainDocumentPanel extends JPanel {
                         String addedText = textArea.getText(pos, e.getLength());
                         for (int i = 0; i < addedText.length(); i++) {
                             controller.onCharacterChange(addedText.charAt(i), pos + i, OperationType.INSERT);
+                            System.out.println("sent a character update at index :" + i);
                         }
                     } catch (BadLocationException ex) {
                         ex.printStackTrace();

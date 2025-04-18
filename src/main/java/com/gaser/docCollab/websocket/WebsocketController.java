@@ -21,18 +21,19 @@ public class WebsocketController {
     @MessageMapping("/users/{documentID}")
     public void onUserAction(@DestinationVariable String documentID, Message message) {
         System.out.println("recieved message at /users/" + documentID + " : " + message.getContent());
-        messagingTemplate.convertAndSend("/topic/" + documentID + "/users" , message);
+        messagingTemplate.convertAndSend("/topic/users/" + documentID , message);
     }
     
     @MessageMapping("/operations/{documentID}")
-    public void onSend(@DestinationVariable String documentID, Operation operation) {
+    public void onSend(@DestinationVariable String documentID, String operation) {
         System.out.println("recieved message at /operations/" + documentID + " : " + operation.toString());
-        messagingTemplate.convertAndSend("/topic/" + documentID + "/operations", operation);
+        messagingTemplate.convertAndSend("/topic/operations/" + documentID, operation);
     }
     
     @MessageMapping("/cursors/{documentID}")
     public void onCursor(@DestinationVariable String documentID, Cursor cursor) {
         System.out.println("recieved message at /cursors/" + documentID + " : " + cursor.toString());
-        messagingTemplate.convertAndSend("/topic/" + documentID + "/cursors", cursor);
+        messagingTemplate.convertAndSend("/topic/cursors/" + documentID, cursor);
     }
+    
 }

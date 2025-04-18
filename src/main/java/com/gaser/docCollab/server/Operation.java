@@ -4,14 +4,14 @@ import java.time.Instant;
 public class Operation {
   private OperationType operationType;
   private int UID;
-  private Instant time;
+  private String time;
   private Character value;
   private String parentId;
 
   public Operation(OperationType operationType, int UID, Instant time, Character value, String parentId) {
     this.operationType = operationType;
     this.UID = UID;
-    this.time = time;
+    this.time = time.toString();
     this.value = value;
     this.parentId = parentId;
   }
@@ -37,11 +37,11 @@ public class Operation {
   }
 
   public Instant getTime() {
-    return time;
+    return Instant.parse(time);
   }
 
   public void setTime(Instant time) {
-    this.time = time;
+    this.time = time.toString();
   }
 
   public Character getValue() {
@@ -70,4 +70,21 @@ public class Operation {
             ", parentId='" + parentId + '\'' +
             '}';
   }
+
+  public String seralize(){
+    return operationType + "," + UID + "," + time + "," + value + "," + parentId;
+  }
+
+  public static Operation deserialize(String str) {
+    String[] parts = str.split(",");
+    OperationType operationType = OperationType.valueOf(parts[0]);
+    int UID = Integer.parseInt(parts[1]);
+    Instant time = Instant.parse(parts[2]);
+    Character value = parts[3].charAt(0);
+    String parentId = parts[4];
+    Operation operation = new Operation(operationType, UID, time, value, parentId);
+    System.out.println("in des the str : " + str + " the operation : " + operation.toString());
+    return operation;
+  }
+
 }
