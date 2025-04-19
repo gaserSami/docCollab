@@ -1,6 +1,8 @@
 package com.gaser.docCollab.client;
 
 import java.util.Collections;
+import java.util.HashMap;
+
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
@@ -13,6 +15,8 @@ import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
 import java.util.stream.IntStream;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaser.docCollab.UI.CollaborativeUI;
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.websocket.Cursor;
@@ -20,16 +24,20 @@ import com.gaser.docCollab.websocket.Message;
 
 import org.springframework.web.socket.sockjs.client.Transport;
 import java.util.List;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 
 public class MyStompClient {
   private StompSession session;
   private int UID;
   private String documentID;
-  // TODO: HASH_MAP
-  private ArrayList<Integer> activeUserIds;
-  private ArrayList<Integer> cursorPositions;
+  public HashMap<String, String> codes;
+  private HashMap<Integer, Integer> activeUsers;
   private CRDT crdt;
   private CollaborativeUI ui;
   private int lamportTime = 0;
@@ -38,8 +46,8 @@ public class MyStompClient {
     this.UID = UID;
     this.ui = ui;
     this.crdt = new CRDT();
-    this.activeUserIds = new ArrayList<>();
-    this.cursorPositions = new ArrayList<>();
+    this.activeUsers = new HashMap<Integer, Integer>();
+    this.codes = new HashMap<String, String>();
   }
 
   public int getLamportTime() {
@@ -54,34 +62,30 @@ public class MyStompClient {
     lamportTime++;
   }
 
-  public void onUserJoin(int UID) {
-    activeUserIds.add(UID);
-    cursorPositions.add(0);
-  }
+  // public void onUserJoin(int UID) {
+  //   activeUserIds.add(UID);
+  //   cursorPositions.add(0);
+  // }
 
-  public void onUserLeave(int UID) {
-    for (int i = 0; i < activeUserIds.size(); i++) {
-      if (activeUserIds.get(i).equals(UID)) {
-        activeUserIds.remove(i);
-        cursorPositions.remove(i);
-        break;
-      }
-    }
-  }
+  // public void onUserLeave(int UID) {
+  //   for (int i = 0; i < activeUserIds.size(); i++) {
+  //     if (activeUserIds.get(i).equals(UID)) {
+  //       activeUserIds.remove(i);
+  //       cursorPositions.remove(i);
+  //       break;
+  //     }
+  //   }
+  // }
 
   public void onUserCursorChange(Cursor cursor) {
-    int UID = cursor.getUID();
-    int cursorPosition = cursor.getPos();
-
-    for (int i = 0; i < activeUserIds.size(); i++) {
-      if (activeUserIds.get(i).equals(UID)) {
-        cursorPositions.set(i, cursorPosition);
-        break;
-      }
-    }
+    activeUsers.put(cursor.getUID(), cursor.getPos());
   }
 
-  public void listen() {
+  public void setActiveUsers(HashMap<Integer, Integer> activeUsers) {
+    this.activeUsers = activeUsers;
+  }
+
+  private void listen() {
     String tmp = "/topic/operations/" + getDocumentID();
     System.out.println(tmp);
 
@@ -131,15 +135,35 @@ public class MyStompClient {
             Message message = (Message) payload;
             Integer UID = message.getUID();
             String content = message.getContent();
-            if ("join".equals(content)) {
-              onUserJoin(UID);
-            } else if ("leave".equals(content)) {
-              onUserLeave(UID);
+            // if ("join".equals(content)) {
+            //   onUserJoin(UID);
+            // } else if ("leave".equals(content)) {
+            //   onUserLeave(UID);
+            // }
+            
+            setActiveUsers(message.getActiveUsers());
+
+            if (getUID() == UID && "join".equals(content)) {
+              crdt = CRDT.deserialize(message.getCRDT());
+              String crdtString = "";
+              if(crdt != null){
+                crdtString = crdt.toString();
+              }
+              System.out.println("Initialized CRDT from server: " + crdtString);
+              getUI().getMainPanel().displayDocument(crdtString, "tmp file name");
+              // getUI().getMainPanel().updateDocumentContent(crdtString);
+              codes = message.codes;
             }
 
+            System.out.println("Active users: " + message.getActiveUsers().toString());
+
             getUI().getSidebarPanel().updateActiveUsers(
-                getActiveUserIds().stream()
-                    .map(id -> "User " + id)
+                IntStream.range(0, getActiveUserIds().size())
+                    .mapToObj(idx -> {
+                      Integer id = getActiveUserIds().get(idx);
+                      Integer position = getCursorPositions().get(idx);
+                      return "User " + id + " - " + position;
+                    })
                     .collect(java.util.stream.Collectors.toList()));
             System.out.println("Received UID: " + UID.toString());
           } else {
@@ -172,7 +196,7 @@ public class MyStompClient {
                     .mapToObj(idx -> {
                       Integer id = getActiveUserIds().get(idx);
                       Integer position = getCursorPositions().get(idx);
-                      return "User " + id + "pos: " + position;
+                      return "User " + id + " - " + position;
                     })
                     .collect(java.util.stream.Collectors.toList()));
             System.out.println("Received cursor: " + cursor.toString());
@@ -219,8 +243,7 @@ public class MyStompClient {
         session = null;
 
         // Clear active users and cursor positions
-        activeUserIds.clear();
-        cursorPositions.clear();
+        activeUsers.clear();
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -233,11 +256,19 @@ public class MyStompClient {
   }
 
   public List<Integer> getActiveUserIds() {
-    return activeUserIds;
+    return activeUsers.keySet().stream()
+        .sorted()
+        .collect(java.util.stream.Collectors.toList());
   }
 
   public List<Integer> getCursorPositions() {
-    return cursorPositions;
+    return activeUsers.values().stream()
+        .sorted()
+        .collect(java.util.stream.Collectors.toList());
+  }
+
+  public HashMap<Integer, Integer> getActiveUsers() {
+    return activeUsers;
   }
 
   public int getUID() {
@@ -249,7 +280,7 @@ public class MyStompClient {
   }
 
   public String getDocumentID() {
-    return "1";
+    return documentID;
   }
 
   public CRDT getCrdt() {
@@ -278,25 +309,119 @@ public class MyStompClient {
     }
   }
 
-  public void joinDocument(String documentID) {
-    this.documentID = documentID;
+  public void joinDocument(String sessionCode) {
     if (session != null && session.isConnected()) {
-      Message message = new Message(UID, "join");
-      session.send("/app/users/" + documentID, message);
-      System.out.println("Client Sent Join to /app/users/" + documentID);
+        try {
+            // Send a request to get the documentID using the sessionCode
+            URL url = new URL("http://localhost:8080/api/document/id/" + sessionCode);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            
+            int responseCode = conn.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), "utf-8"))) {
+                    StringBuilder responseString = new StringBuilder();
+                    String responseLine = null;
+                    while ((responseLine = br.readLine()) != null) {
+                        responseString.append(responseLine.trim());
+                    }
+                    
+                    // Parse JSON response
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode root = mapper.readTree(responseString.toString());
+                    
+                    // Set the documentID in the client
+                    if (root.has("documentId")) {
+                        this.documentID = root.get("documentId").asText();
+                        System.out.println("Joining document with ID: " + this.documentID);
+                        
+                        // set up listeners
+                        listen();
+                        
+                        Message message = new Message(UID, "join");
+                        session.send("/app/join/" + this.documentID, message);
+                        System.out.println("Client sent join message to /app/join/" + this.documentID);
+                    } else {
+                        System.out.println("Error: " + root.get("error").asText());
+                    }
+                }
+            } else {
+                System.out.println("Failed to get document ID. Response code: " + responseCode);
+            }
+        } catch (Exception e) {
+            System.out.println("Error joining document: " + e.getMessage());
+            e.printStackTrace();
+        }
     } else {
-      System.out.println("Session is not connected. Cannot join document.");
+        System.out.println("Session is not connected. Cannot join document.");
     }
-  }
+}
 
   public void leaveDocument(String documentID) {
     if (session != null && session.isConnected()) {
       Message message = new Message(UID, "leave");
-      session.send("/app/users/" + documentID, message);
+      session.send("/app/leave/" + documentID, message);
       System.out.println("Client Sent Leave to /app/users/" + documentID);
     } else {
       System.out.println("Session is not connected. Cannot leave document.");
     }
   }
+
+  public HashMap<String, String> createDocument() {
+    HashMap<String, String> response = new HashMap<>();
+    try {
+        URL url = new URL("http://localhost:8080/api/document/create");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("Accept", "application/json");
+        conn.setDoOutput(true);
+        
+        // Create JSON payload with correct UID field name
+        String jsonInputString = "{\"UID\":" + this.UID + ", \"name\":\"Untitled Document\"}";
+        
+        try (OutputStream os = conn.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+        
+        int responseCode = conn.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), "utf-8"))) {
+                StringBuilder responseString = new StringBuilder();
+                String responseLine = null;
+                while ((responseLine = br.readLine()) != null) {
+                    responseString.append(responseLine.trim());
+                }
+                
+                // Parse JSON response
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(responseString.toString());
+                
+                response.put("docID", root.get("docID").asText());
+                response.put("readonlyCode", root.get("readonlyCode").asText());
+                response.put("editorCode", root.get("editorCode").asText());
+                
+                // Set the document ID for this client correctly (fix typo)
+                this.documentID = response.get("docID");
+                this.codes.put("readonlyCode", response.get("readonlyCode"));
+                this.codes.put("editorCode", response.get("editorCode"));
+                
+                System.out.println("Document created successfully with ID: " + this.documentID);
+            }
+        } else {
+            System.out.println("Failed to create document. Response code: " + responseCode);
+        }
+        
+    } catch (Exception e) {
+        System.out.println("Error creating document: " + e.getMessage());
+        e.printStackTrace();
+    }
+    
+    return response;
+}
 
 }

@@ -3,17 +3,12 @@ package com.gaser.docCollab.UI;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 
-import org.springframework.messaging.simp.stomp.StompFrameHandler;
-import org.springframework.messaging.simp.stomp.StompHeaders;
-
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
 import com.gaser.docCollab.websocket.Cursor;
-import com.gaser.docCollab.websocket.Message;
 
 import java.io.*;
-import java.lang.reflect.Type;
-import java.time.Instant;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
 import java.awt.*;
@@ -29,19 +24,20 @@ public class UIController {
      * Handles the join button click event
      */
     public void handleJoinButtonClick() {
-        // TODO
         System.out.println("Join button clicked");
-        // this.ui.getClient().disconnectFromWebSocket();
+        this.ui.getClient().disconnectFromWebSocket();
         String sessionCode = ui.getTopBarPanel().getSessionCode();
         if (sessionCode.isEmpty()) {
             JOptionPane.showMessageDialog(ui, "Please enter a session code.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        handleJoin(sessionCode);
+    }
+
+    public void handleJoin(String sessionCode){
         ui.getClient().connectToWebSocket();
-        ui.getClient().setDocumentID(sessionCode);
-        ui.getClient().listen();
-        System.out.println("sessionCode from the top bar panel: " + sessionCode);
         ui.getClient().joinDocument(sessionCode);
+        System.out.println("sessionCode from the top bar panel: " + sessionCode);
         System.out.println("user joined session: " + sessionCode);
     }
 
@@ -109,7 +105,10 @@ public class UIController {
         editorLabel.setFont(new Font("Arial", Font.BOLD, 14));
 
         // Generate a mock editor code (would be dynamic in a real implementation)
-        String editorCode = generateMockCode();
+        String editorCode = ui.getClient().codes.get("editorCode");
+        if (editorCode == null) {
+            editorCode = "No editor code available";
+        }
         JTextField editorCodeField = new JTextField(editorCode);
         editorCodeField.setEditable(false);
         editorCodeField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -128,7 +127,10 @@ public class UIController {
         readOnlyLabel.setFont(new Font("Arial", Font.BOLD, 14));
 
         // Generate a mock read-only code
-        String readOnlyCode = generateMockCode();
+        String readOnlyCode = ui.getClient().codes.get("readOnlyCode");
+        if (readOnlyCode == null) {
+            readOnlyCode = "No read-only code available";
+        }
         JTextField readOnlyCodeField = new JTextField(readOnlyCode);
         readOnlyCodeField.setEditable(false);
         readOnlyCodeField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -192,14 +194,38 @@ public class UIController {
         menu.show(ui.getTopBarPanel().getFileButton(), 0, ui.getTopBarPanel().getFileButton().getHeight());
     }
 
-    /**
-     * Handles the new document option selection
-     */
     private void handleNewOption() {
-        // Create a new empty document
-        ui.getMainPanel().displayDocument("", "Untitled.txt");
-
-        System.out.println("New document created");
+        // Prompt user for document name
+        String documentName = JOptionPane.showInputDialog(ui, 
+                "Enter a name for the new document:", 
+                "New Document", 
+                JOptionPane.QUESTION_MESSAGE);
+        
+        // If user cancels or enters empty string, use default name
+        if (documentName == null) {
+            return; // User canceled the operation
+        } else if (documentName.trim().isEmpty()) {
+            documentName = "Untitled.txt";
+        } else if (!documentName.toLowerCase().endsWith(".txt")) {
+            // Add .txt extension if not present
+            documentName = documentName + ".txt";
+        }
+        
+        HashMap<String, String> res = ui.getClient().createDocument();
+        
+        if (res.isEmpty()) {
+            JOptionPane.showMessageDialog(ui, 
+                "Failed to create document. Please try again.", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        ui.getClient().disconnectFromWebSocket();
+        handleJoin(res.get("editorCode"));
+        
+        ui.getMainPanel().displayDocument("", documentName);
+        System.out.println("New document created: " + documentName + " with ID: " + res.get("docID"));
     }
 
     /**

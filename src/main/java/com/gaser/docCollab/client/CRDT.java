@@ -7,11 +7,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
+import com.google.gson.Gson;
 
 public class CRDT {
   private CharacterNode head;
   private HashMap<String, CharacterNode> map;
-  Lock writeLock = new ReentrantReadWriteLock().writeLock();
+  private transient Lock writeLock = new ReentrantReadWriteLock().writeLock();
 
   public CRDT() {
     this.head = new CharacterNode('#', Integer.MAX_VALUE, 0);
@@ -127,5 +128,18 @@ public class CRDT {
       current = current.getNext();
     }
     return sb.toString();
+  }
+
+  public String serialize() {
+    try{
+      writeLock.lock();
+      return new Gson().toJson(this);
+    } finally{
+      writeLock.unlock();
+    }
+  }
+
+  public static CRDT deserialize(String json) {
+    return new Gson().fromJson(json, CRDT.class);
   }
 }
