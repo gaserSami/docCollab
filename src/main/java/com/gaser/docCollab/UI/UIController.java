@@ -215,7 +215,7 @@ public class UIController {
             documentName = documentName + ".txt";
         }
         
-        HashMap<String, String> res = ui.getClient().createDocument();
+        HashMap<String, String> res = ui.getClient().createDocument(documentName);
         
         if (res.isEmpty()) {
             JOptionPane.showMessageDialog(ui, 
@@ -228,7 +228,7 @@ public class UIController {
         ui.getClient().disconnectFromWebSocket();
         handleJoin(res.get("editorCode"));
         
-        ui.getMainPanel().displayDocument("", documentName);
+        // ui.getMainPanel().displayDocument("", documentName);
         System.out.println("New document created: " + documentName + " with ID: " + res.get("docID"));
     }
 
@@ -283,7 +283,7 @@ private void handleImportOption() {
             }
 
             // Create a new document on the server
-            HashMap<String, String> res = ui.getClient().createDocument();
+            HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName());
             
             if (res.isEmpty()) {
                 JOptionPane.showMessageDialog(ui, 
@@ -299,10 +299,10 @@ private void handleImportOption() {
             ui.getClient().disconnectFromWebSocket();
             handleJoin(res.get("editorCode"));
             
-            ui.getClient().getCrdt().fromString(content.toString());
-            System.out.println("after using from string on the crdt : " + ui.getClient().getCrdt().toString());
+            // ui.getClient().getCrdt().fromString(content.toString());
+            // System.out.println("after using from string on the crdt : " + ui.getClient().getCrdt().toString());
             // Display the document with the imported content and filename
-            ui.getMainPanel().displayDocument(ui.getClient().getCrdt().toString(), selectedFile.getName());
+            // ui.getMainPanel().displayDocument(ui.getClient().getCrdt().toString(), selectedFile.getName());
             System.out.println("File imported: " + selectedFile.getName() + " with ID: " + res.get("docID"));
 
         } catch (FileNotFoundException e) {

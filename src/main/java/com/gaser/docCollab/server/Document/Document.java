@@ -95,4 +95,7 @@ public class Document {
         activeUsers.clear();
     }
 
+    public void initializeContent(String initialContent){
+        crdt.fromString(initialContent);
+    }
 }

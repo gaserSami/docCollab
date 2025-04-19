@@ -3,15 +3,18 @@ package com.gaser.docCollab.server;
 public class DocumentCreationRequest {
     private int UID;
     private String name;
+    private String content;
 
-    public DocumentCreationRequest() {
-    }
+    // Constructors
+    public DocumentCreationRequest() {}
 
-    public DocumentCreationRequest(int UID, String name) {
+    public DocumentCreationRequest(int UID, String name, String content) {
         this.UID = UID;
         this.name = name;
+        this.content = content;
     }
 
+    // Getters and setters
     public int getUID() {
         return UID;
     }
@@ -26,5 +29,13 @@ public class DocumentCreationRequest {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 }

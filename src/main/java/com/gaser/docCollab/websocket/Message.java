@@ -7,6 +7,7 @@ public class Message {
   int UID;
   String content;
   String documentID;
+  String documentTitle;
   private HashMap<Integer, Integer> activeUsers = new HashMap<>();
   private String crdt = null; // serialized CRDT object
   public HashMap<String, String> codes;
@@ -58,6 +59,14 @@ public class Message {
 
   public void setCRDT(String crdt) {
     this.crdt = crdt;
+  }
+
+  public String getDocumentTitle() {
+    return documentTitle;
+  }
+
+  public void setDocumentTitle(String documentTitle) {
+    this.documentTitle = documentTitle;
   }
   
 }

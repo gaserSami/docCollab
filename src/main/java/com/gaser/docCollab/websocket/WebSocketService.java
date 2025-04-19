@@ -14,13 +14,18 @@ public class WebSocketService {
   private HashMap<String, String> readCode = new HashMap<>(); // readcode - > docId
   private HashMap<String, String> writeCode = new HashMap<>(); // writecode - > docId
 
-  public HashMap<String, String> createDocument(int UID, String name){
+  public HashMap<String, String> createDocument(int UID, String name, String initialContent){
     // return id, either readonlycode or the read
     String id = UUID.randomUUID().toString();
     String readCode = UUID.randomUUID().toString();
     String editorCode = UUID.randomUUID().toString();
 
     Document document = new Document(id, name, UID);
+    if (initialContent != null && !initialContent.isEmpty()) {
+      // Initialize the CRDT with the provided content
+      // This depends on your CRDT implementation
+      document.initializeContent(initialContent);
+  }
 
     document.setReadonlyCode(readCode);
     document.setEditorCode(editorCode);
@@ -95,6 +100,11 @@ public String getEditorCode(String docId) {
     return documents.get(docId).getEditorCode();
 
 }
+
+public Document getDocument(String docId) {
+    return documents.get(docId);
+}
+
 }
 
 

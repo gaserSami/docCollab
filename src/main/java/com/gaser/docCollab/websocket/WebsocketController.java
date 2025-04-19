@@ -45,6 +45,7 @@ public class WebsocketController {
         message.codes.put("readonlyCode", webSocketService.getReadOnlyCode(docID));
         if(!message.isReader) message.codes.put("editorCode", webSocketService.getEditorCode(docID));
         message.isReader = res.get("isReader").equals("true");
+        message.setDocumentTitle(webSocketService.getDocument(docID).getTitle());
         
         // Broadcast to all clients including the sender
         messagingTemplate.convertAndSend("/topic/users/" + docID, message);

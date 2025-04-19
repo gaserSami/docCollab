@@ -150,7 +150,7 @@ public class MyStompClient {
                 crdtString = crdt.toString();
               }
               System.out.println("Initialized CRDT from server: " + crdtString);
-              getUI().getMainPanel().displayDocument(crdtString, "tmp file name", message.isReader);
+              getUI().getMainPanel().displayDocument(crdtString, message.getDocumentTitle(), message.isReader);
               // getUI().getMainPanel().updateDocumentContent(crdtString);
               codes = message.codes;
             }
@@ -369,7 +369,12 @@ public class MyStompClient {
     }
   }
 
-  public HashMap<String, String> createDocument() {
+
+  public HashMap<String, String> createDocument(String title) {
+    return createDocument(title,null);
+  }
+
+  public HashMap<String, String> createDocument(String title, String initialContent) {
     HashMap<String, String> response = new HashMap<>();
     try {
         URL url = new URL("http://localhost:8080/api/document/create");
@@ -379,14 +384,24 @@ public class MyStompClient {
         conn.setRequestProperty("Accept", "application/json");
         conn.setDoOutput(true);
         
-        // Create JSON payload with correct UID field name
-        String jsonInputString = "{\"UID\":" + this.UID + ", \"name\":\"Untitled Document\"}";
+        // Use the provided title parameter instead of hardcoded "Untitled Document"
+        String documentTitle = (title != null && !title.isEmpty()) ? title : "Untitled Document";
+        
+        // Create JSON payload including initial content if provided
+        String jsonInputString;
+        if (initialContent != null && !initialContent.isEmpty()) {
+            jsonInputString = "{\"UID\":" + this.UID + ", \"name\":\"" + escapeJsonString(documentTitle) 
+                            + "\", \"content\":\"" + escapeJsonString(initialContent) + "\"}";
+        } else {
+            jsonInputString = "{\"UID\":" + this.UID + ", \"name\":\"" + escapeJsonString(documentTitle) + "\"}";
+        }
         
         try (OutputStream os = conn.getOutputStream()) {
             byte[] input = jsonInputString.getBytes("utf-8");
             os.write(input, 0, input.length);
         }
         
+        // Rest of the method remains the same
         int responseCode = conn.getResponseCode();
         if (responseCode == HttpURLConnection.HTTP_OK) {
             try (BufferedReader br = new BufferedReader(
@@ -405,7 +420,7 @@ public class MyStompClient {
                 response.put("readonlyCode", root.get("readonlyCode").asText());
                 response.put("editorCode", root.get("editorCode").asText());
                 
-                // Set the document ID for this client correctly (fix typo)
+                // Set the document ID for this client correctly
                 this.documentID = response.get("docID");
                 this.codes.put("readonlyCode", response.get("readonlyCode"));
                 this.codes.put("editorCode", response.get("editorCode"));
@@ -423,5 +438,17 @@ public class MyStompClient {
     
     return response;
 }
+
+  private String escapeJsonString(String input) {
+    if (input == null) return "";
+    
+    return input.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+  }
 
 }

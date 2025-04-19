@@ -19,9 +19,9 @@ public class ServerController {
   private WebSocketService webSocketService;
 
   @PostMapping("/create")
-  public HashMap<String, String> createDocument(@RequestBody DocumentCreationRequest request) {
-      return webSocketService.createDocument(request.getUID(), request.getName());
-  }
+    public HashMap<String, String> createDocument(@RequestBody DocumentCreationRequest request) {
+        return webSocketService.createDocument(request.getUID(), request.getName(), request.getContent());
+    }
 
   @GetMapping("/id/{sessionCode}")
   public HashMap<String, String> getDocumentIDFromSessionCode(@PathVariable String sessionCode) {
