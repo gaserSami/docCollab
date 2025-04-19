@@ -249,6 +249,8 @@ public class MyStompClient {
           crdt = new CRDT();
           documentTitle = "null";
           isReader = false;
+          undoStack.clear();
+          redoStack.clear();
         }
         
         // Then disconnect the session
@@ -318,6 +320,7 @@ public class MyStompClient {
       if(operation.getSecondaryType() == SecondaryType.NORMAL){
         stackOperation.setSecondaryType(SecondaryType.UNDO);
         undoStack.push(stackOperation);
+        redoStack.clear();
       } else if(operation.getSecondaryType() == SecondaryType.UNDO){
         stackOperation.setSecondaryType(SecondaryType.REDO);
         redoStack.push(stackOperation);
@@ -496,6 +499,8 @@ public class MyStompClient {
   }
 
   public Operation getUndoLastOperation() {
+    System.out.println("state of the undo stack before talking the last operation: ");
+    System.out.println(undoStack.toString());
     if (!undoStack.isEmpty()) {
       return undoStack.pop();
     } else {
@@ -505,6 +510,8 @@ public class MyStompClient {
   }
 
   public Operation getRedoLastOperation() {
+    System.out.println("state of the redo stack before talking the last operation: ");
+    System.out.println(redoStack.toString());
     if (!redoStack.isEmpty()) {
       return redoStack.pop();
     } else {

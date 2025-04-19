@@ -444,7 +444,8 @@ private void handleImportOption() {
                 operation.getOperationType(), ui.getClient().getUID(),
                 this.ui.getClient().getLamportTime(),
                 operation.getValue(),
-                operation.getParentId()));
+                operation.getParentId()
+                ,operation.getSecondaryType()));
         this.ui.getClient().incrementLamportTime();
         System.out.println("after undo");
     }
@@ -460,7 +461,8 @@ private void handleImportOption() {
                 operation.getOperationType(), ui.getClient().getUID(),
                 this.ui.getClient().getLamportTime(),
                 operation.getValue(),
-                operation.getParentId()));
+                operation.getParentId(),operation.getSecondaryType()
+                ));
         this.ui.getClient().incrementLamportTime();
         System.out.println("after redo");
     }

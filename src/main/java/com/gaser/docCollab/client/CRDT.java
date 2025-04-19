@@ -35,13 +35,13 @@ public class CRDT {
       }
     } else if(operation.getSecondaryType() == SecondaryType.UNDO){
       if(operation.getOperationType() == OperationType.INSERT){
-        markAsDeleted(operation.getParentId());
+        markAsDeleted(map.get(operation.getParentId()).getNext().getID());
       } else if(operation.getOperationType() == OperationType.DELETE){
         markAsNotDeleted(operation.getParentId());
       }
     } else{ // redo
       if(operation.getOperationType() == OperationType.INSERT){
-        markAsNotDeleted(operation.getParentId());
+        markAsNotDeleted(map.get(operation.getParentId()).getNext().getID());
       } else if(operation.getOperationType() == OperationType.DELETE){
         markAsDeleted(operation.getParentId());
       }
@@ -99,6 +99,7 @@ public class CRDT {
   public void markAsDeleted(String id) {
     try {
       writeLock.lock();
+      System.out.println("marking: " + id + " as deleted");
       map.get(id).setDeleted(true);
     } finally {
       writeLock.unlock();
