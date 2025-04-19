@@ -78,10 +78,56 @@ public class CharacterNode {
     }
 
     public String serialize() {
-        return new Gson().toJson(this);
+        return String.format(
+                "{\n" +
+                        "  \"value\": \"%s\",\n" +
+                        "  \"time\": %d,\n" +
+                        "  \"UID\": %d,\n" +
+                        "  \"prev\": %s,\n" +
+                        "  \"next\": %s,\n" +
+                        "  \"isDeleted\": %b\n" +
+                        "}",
+                value,
+                time,
+                UID,
+                prev != null ? prev.getID() : null,
+                next != null ? next.getID() : null,
+                isDeleted
+        );
     }
 
     public static CharacterNode deserialize(String json) {
-        return new Gson().fromJson(json, CharacterNode.class);
+        CharacterNode node = new CharacterNode();
+        
+        String cleaned = json.trim().substring(1, json.length() - 1).trim();
+        
+        int valueStart = cleaned.indexOf("\"value\": \"") + 10;
+        int valueEnd = cleaned.indexOf("\"", valueStart);
+        String valueStr = cleaned.substring(valueStart, valueEnd);
+        node.setValue(valueStr.isEmpty() ? null : valueStr.charAt(0));
+        
+        int timeStart = cleaned.indexOf("\"time\": ") + 8;
+        int timeEnd = cleaned.indexOf(",", timeStart);
+        node.setTime(Integer.parseInt(cleaned.substring(timeStart, timeEnd).trim()));
+        
+        int uidStart = cleaned.indexOf("\"UID\": ") + 7;
+        int uidEnd = cleaned.indexOf(",", uidStart);
+        node.setUID(Integer.parseInt(cleaned.substring(uidStart, uidEnd).trim()));
+        
+        // Extract prev
+        int prevStart = cleaned.indexOf("\"prev\": ") + 8;
+        int prevEnd = cleaned.indexOf(",", prevStart);
+        String prevStr = cleaned.substring(prevStart, prevEnd).trim();
+        
+        int nextStart = cleaned.indexOf("\"next\": ") + 8;
+        int nextEnd = cleaned.indexOf(",", nextStart);
+        String nextStr = cleaned.substring(nextStart, nextEnd).trim();
+        
+        // Extract isDeleted
+        int isDeletedStart = cleaned.indexOf("\"isDeleted\": ") + 13;
+        int isDeletedEnd = cleaned.length();
+        node.setDeleted(Boolean.parseBoolean(cleaned.substring(isDeletedStart, isDeletedEnd).trim()));
+        
+        return node;
     }
 }

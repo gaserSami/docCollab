@@ -25,6 +25,10 @@ public class UIController {
      */
     public void handleJoinButtonClick() {
         System.out.println("Join button clicked");
+        if(ui.getClient().getDocumentID() != null){
+            ui.getClient().leaveDocument(ui.getClient().getDocumentID());
+            ui.getClient().setDocumentID(null);
+        }
         this.ui.getClient().disconnectFromWebSocket();
         String sessionCode = ui.getTopBarPanel().getSessionCode();
         if (sessionCode.isEmpty()) {
@@ -127,7 +131,7 @@ public class UIController {
         readOnlyLabel.setFont(new Font("Arial", Font.BOLD, 14));
 
         // Generate a mock read-only code
-        String readOnlyCode = ui.getClient().codes.get("readOnlyCode");
+        String readOnlyCode = ui.getClient().codes.get("readonlyCode");
         if (readOnlyCode == null) {
             readOnlyCode = "No read-only code available";
         }
@@ -231,61 +235,83 @@ public class UIController {
     /**
      * Handles the import option selection
      */
-    private void handleImportOption() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Import Text File");
-        fileChooser.setFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File file) {
-                return file.isDirectory() || file.getName().toLowerCase().endsWith(".txt");
-            }
+    /**
+ * Handles the import option selection
+ */
+private void handleImportOption() {
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Import Text File");
+    fileChooser.setFileFilter(new FileFilter() {
+        @Override
+        public boolean accept(File file) {
+            return file.isDirectory() || file.getName().toLowerCase().endsWith(".txt");
+        }
 
-            @Override
-            public String getDescription() {
-                return "Text Files (*.txt)";
-            }
-        });
+        @Override
+        public String getDescription() {
+            return "Text Files (*.txt)";
+        }
+    });
 
-        int result = fileChooser.showOpenDialog(ui);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            if (!selectedFile.getName().toLowerCase().endsWith(".txt")) {
+    int result = fileChooser.showOpenDialog(ui);
+    if (result == JFileChooser.APPROVE_OPTION) {
+        File selectedFile = fileChooser.getSelectedFile();
+        if (!selectedFile.getName().toLowerCase().endsWith(".txt")) {
+            JOptionPane.showMessageDialog(ui,
+                    "Only text (.txt) files are supported.",
+                    "Invalid File Type",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            // Read the content of the file
+            Scanner scanner = new Scanner(selectedFile);
+            StringBuilder content = new StringBuilder();
+            while (scanner.hasNextLine()) {
+                content.append(scanner.nextLine()).append("\n");
+            }
+            scanner.close();
+
+            // Check if content appears to be binary/non-text
+            if (containsBinaryData(content.toString())) {
                 JOptionPane.showMessageDialog(ui,
-                        "Only text (.txt) files are supported.",
-                        "Invalid File Type",
+                        "The file doesn't appear to contain valid text content.",
+                        "Invalid Content",
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            try {
-                // Read the content of the file
-                Scanner scanner = new Scanner(selectedFile);
-                StringBuilder content = new StringBuilder();
-                while (scanner.hasNextLine()) {
-                    content.append(scanner.nextLine()).append("\n");
-                }
-                scanner.close();
-
-                // Check if content appears to be binary/non-text
-                if (containsBinaryData(content.toString())) {
-                    JOptionPane.showMessageDialog(ui,
-                            "The file doesn't appear to contain valid text content.",
-                            "Invalid Content",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                // Create document display in main panel
-                ui.getMainPanel().displayDocument(content.toString(), selectedFile.getName());
-
-                System.out.println("File imported: " + selectedFile.getName());
-            } catch (FileNotFoundException e) {
-                JOptionPane.showMessageDialog(ui,
-                        "Could not open the file: " + e.getMessage(),
-                        "File Error",
-                        JOptionPane.ERROR_MESSAGE);
+            // Create a new document on the server
+            HashMap<String, String> res = ui.getClient().createDocument();
+            
+            if (res.isEmpty()) {
+                JOptionPane.showMessageDialog(ui, 
+                    "Failed to create document. Please try again.", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+                return;
             }
+            
+            // Disconnect from any previous connection and join the new document
+            if(ui.getClient().getDocumentID() != null) ui.getClient().leaveDocument(ui.getClient().getDocumentID());
+            ui.getClient().setDocumentID(null);
+            ui.getClient().disconnectFromWebSocket();
+            handleJoin(res.get("editorCode"));
+            
+            ui.getClient().getCrdt().fromString(content.toString());
+            System.out.println("after using from string on the crdt : " + ui.getClient().getCrdt().toString());
+            // Display the document with the imported content and filename
+            ui.getMainPanel().displayDocument(ui.getClient().getCrdt().toString(), selectedFile.getName());
+            System.out.println("File imported: " + selectedFile.getName() + " with ID: " + res.get("docID"));
+
+        } catch (FileNotFoundException e) {
+            JOptionPane.showMessageDialog(ui,
+                    "Could not open the file: " + e.getMessage(),
+                    "File Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
+    }
     }
 
     /**

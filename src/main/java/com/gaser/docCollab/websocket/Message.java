@@ -10,6 +10,7 @@ public class Message {
   private HashMap<Integer, Integer> activeUsers = new HashMap<>();
   private String crdt = null; // serialized CRDT object
   public HashMap<String, String> codes;
+  public boolean isReader = false;
 
   public Message(int UID, String content) {
     this.UID = UID;
@@ -58,4 +59,5 @@ public class Message {
   public void setCRDT(String crdt) {
     this.crdt = crdt;
   }
+  
 }

@@ -24,13 +24,17 @@ public class MainDocumentPanel extends JPanel {
         setBackground(Color.WHITE);
     }
 
+    public void displayDocument(String content, String fileName) {
+        displayDocument(content, fileName, false);
+    }
+    
     /**
      * Displays the document content in the panel
      * 
      * @param content  The document content
      * @param fileName The name of the file
      */
-    public void displayDocument(String content, String fileName) {
+    public void displayDocument(String content, String fileName, boolean isReader) {
         removeAll();
 
         this.currentFileName = fileName;
@@ -40,6 +44,13 @@ public class MainDocumentPanel extends JPanel {
         textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
+
+        textArea.setEditable(!isReader);
+    
+        // Add a visual indicator if in read-only mode
+        if (isReader) {
+            textArea.setBackground(new Color(245, 245, 245)); // Light gray background for read-only
+        }
 
         // Add document listener to track changes
         textArea.getDocument().addDocumentListener(new DocumentListener() {

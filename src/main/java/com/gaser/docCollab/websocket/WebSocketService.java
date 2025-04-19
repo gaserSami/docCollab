@@ -37,12 +37,12 @@ public class WebSocketService {
     return result;
   }
   
-  public HashMap<String, String> joinDocument(int UID, String docId){
-    // boolean isReadCode = readCode.containsKey(code);
-    // boolean isEditorCode = writeCode.containsKey(code);
-    // if (!isReadCode && !isEditorCode) return null;
+  public HashMap<String, String> joinDocument(int UID, String code){
+    boolean isReadCode = readCode.containsKey(code);
+    boolean isEditorCode = writeCode.containsKey(code);
+    if (!isReadCode && !isEditorCode) return null;
 
-    // String docId = isReadCode ? readCode.get(code) : writeCode.get(code);
+    String docId = isReadCode ? readCode.get(code) : writeCode.get(code);
     Document document = documents.get(docId);
     document.addActiveUser(UID, 0);
 
@@ -50,6 +50,7 @@ public class WebSocketService {
     result.put("readonlyCode", document.getReadonlyCode());
     result.put("docID", document.getId());
     result.put("crdt", document.getCrdt().serialize());
+    result.put("isReader", readCode.containsKey(code) ? "true" : "false");
 
     return result;
   }
@@ -65,6 +66,8 @@ public class WebSocketService {
 
   public void handleOperation(String docId, Operation operation) {
     documents.get(docId).getCrdt().handleOperation(operation);
+    System.out.println("server handled operation on document: " + docId + " operation: " + operation.toString());
+    System.out.println("server crdt current state: " + documents.get(docId).getCrdt().toString());
   }
 
   public void handleCursorUpdate(String docId, Cursor cursor) {

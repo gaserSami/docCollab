@@ -1,13 +1,17 @@
 package com.gaser.docCollab.client;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
-
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class CRDT {
   private CharacterNode head;
@@ -130,16 +134,74 @@ public class CRDT {
     return sb.toString();
   }
 
-  public String serialize() {
-    try{
-      writeLock.lock();
-      return new Gson().toJson(this);
-    } finally{
-      writeLock.unlock();
+  public void fromString(String content){
+    CharacterNode current = head;
+
+    for (int i = 0; i < content.length(); i++) {
+      CharacterNode newNode = new CharacterNode(content.charAt(i), i, 0);
+      current.setNext(newNode);
+      newNode.setPrev(current);
+      current = newNode;
+      map.put(newNode.getID(), newNode);
     }
   }
 
-  public static CRDT deserialize(String json) {
-    return new Gson().fromJson(json, CRDT.class);
+  public String serialize() {
+        List<NodeDTO> dtoList = new ArrayList<>();
+        for (CharacterNode node : map.values()) {
+            NodeDTO dto = new NodeDTO();
+            dto.value = node.getValue();
+            dto.time = node.getTime();
+            dto.UID = node.getUID();
+            dto.prevId = node.getPrev() != null ? node.getPrev().getID() : null;
+            dto.nextId = node.getNext() != null ? node.getNext().getID() : null;
+            dto.isDeleted = node.isDeleted();
+            dtoList.add(dto);
+        }
+        return new Gson().toJson(dtoList);
   }
+
+public static CRDT deserialize(String json) {
+        Type listType = new TypeToken<List<NodeDTO>>() {}.getType();
+        List<NodeDTO> dtoList = new Gson().fromJson(json, listType);
+
+        CRDT crdt = new CRDT();
+        crdt.map.clear();
+
+        // First pass: create all nodes
+        HashMap<String, CharacterNode> tempMap = new HashMap<>();
+        for (NodeDTO dto : dtoList) {
+            CharacterNode node = new CharacterNode(dto.value, dto.time, dto.UID);
+            node.setDeleted(dto.isDeleted);
+            tempMap.put(node.getID(), node);
+        }
+
+        // Second pass: set prev/next links
+        for (NodeDTO dto : dtoList) {
+            CharacterNode node = tempMap.get(dto.UID + "," + dto.time);
+            if (dto.prevId != null) {
+                node.setPrev(tempMap.get(dto.prevId));
+            }
+            if (dto.nextId != null) {
+                node.setNext(tempMap.get(dto.nextId));
+            }
+        }
+
+        // Update CRDT head and map
+        // Identify head (dummy with UID=0 and time=MAX_VALUE)
+        String headId = 0 + "," + Integer.MAX_VALUE;
+        crdt.head = tempMap.get(headId);
+        crdt.map.putAll(tempMap);
+        return crdt;
+    }
+
+    private static class NodeDTO {
+      Character value;
+      int time;
+      int UID;
+      String prevId;
+      String nextId;
+      boolean isDeleted;
+  }
+
 }

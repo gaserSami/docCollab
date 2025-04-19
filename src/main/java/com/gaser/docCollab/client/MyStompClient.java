@@ -35,7 +35,7 @@ import java.util.ArrayList;
 public class MyStompClient {
   private StompSession session;
   private int UID;
-  private String documentID;
+  private String documentID = null;
   public HashMap<String, String> codes;
   private HashMap<Integer, Integer> activeUsers;
   private CRDT crdt;
@@ -150,7 +150,7 @@ public class MyStompClient {
                 crdtString = crdt.toString();
               }
               System.out.println("Initialized CRDT from server: " + crdtString);
-              getUI().getMainPanel().displayDocument(crdtString, "tmp file name");
+              getUI().getMainPanel().displayDocument(crdtString, "tmp file name", message.isReader);
               // getUI().getMainPanel().updateDocumentContent(crdtString);
               codes = message.codes;
             }
@@ -341,8 +341,8 @@ public class MyStompClient {
                         listen();
                         
                         Message message = new Message(UID, "join");
-                        session.send("/app/join/" + this.documentID, message);
-                        System.out.println("Client sent join message to /app/join/" + this.documentID);
+                        session.send("/app/join/" + sessionCode, message);
+                        System.out.println("Client sent join message to /app/join/" + sessionCode);
                     } else {
                         System.out.println("Error: " + root.get("error").asText());
                     }
