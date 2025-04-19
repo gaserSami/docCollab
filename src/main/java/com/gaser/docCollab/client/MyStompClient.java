@@ -37,8 +37,10 @@ public class MyStompClient {
   private StompSession session;
   private int UID;
   private String documentID = null;
+  private String documentTitle = "null";
   public HashMap<String, String> codes;
   private HashMap<Integer, Integer> activeUsers;
+  private boolean isReader = false;
   private CRDT crdt;
   private CollaborativeUI ui;
   private int lamportTime = 0;
@@ -146,19 +148,19 @@ public class MyStompClient {
             
             setActiveUsers(message.getActiveUsers());
 
-            if (getUID() == UID && "join".equals(content)) {
-              crdt = CRDT.deserialize(message.getCRDT());
-              String crdtString = "";
-              if(crdt != null){
-                crdtString = crdt.toString();
-              }
-              System.out.println("Initialized CRDT from server: " + crdtString);
-              getUI().getMainPanel().displayDocument(crdtString, message.getDocumentTitle(), message.isReader);
-              // getUI().getMainPanel().updateDocumentContent(crdtString);
-              // codes = message.codes;
-            }
+            // if (getUID() == UID && "join".equals(content)) {
+            //   crdt = CRDT.deserialize(message.getCRDT());
+            //   String crdtString = "";
+            //   if(crdt != null){
+            //     crdtString = crdt.toString();
+            //   }
+            //   System.out.println("Initialized CRDT from server: " + crdtString);
+            //   getUI().getMainPanel().displayDocument(crdtString, message.getDocumentTitle(), message.isReader);
+            //   // getUI().getMainPanel().updateDocumentContent(crdtString);
+            //   // codes = message.codes;
+            // }
 
-            System.out.println("Active users: " + message.getActiveUsers().toString());
+            // System.out.println("Active users: " + message.getActiveUsers().toString());
 
             getUI().getSidebarPanel().updateActiveUsers(
                 IntStream.range(0, getActiveUserIds().size())
@@ -168,7 +170,8 @@ public class MyStompClient {
                       return "User " + id + " - " + position;
                     })
                     .collect(java.util.stream.Collectors.toList()));
-            System.out.println("Received UID: " + UID.toString());
+            // getUI().getMainPanel().updateCursorPositions(message.getActiveUsers());
+            // System.out.println("Received UID: " + UID.toString());
           } else {
             System.out.println("Received unexpected payload type: " + payload.getClass());
           }
@@ -202,6 +205,7 @@ public class MyStompClient {
                       return "User " + id + " - " + position;
                     })
                     .collect(java.util.stream.Collectors.toList()));
+            // getUI().getMainPanel().updateCursorPositions(getActiveUsers());
             System.out.println("Received cursor: " + cursor.toString());
           } else {
             System.out.println("Received unexpected payload type: " + payload.getClass());
@@ -242,6 +246,9 @@ public class MyStompClient {
           leaveDocument(this.documentID);
           this.documentID = null;
           this.codes = new HashMap<>();
+          crdt = new CRDT();
+          documentTitle = "null";
+          isReader = false;
         }
         
         // Then disconnect the session
@@ -359,13 +366,18 @@ public class MyStompClient {
                     
                     // Set the documentID in the client
                     if (root.has("documentId")) {
-                        this.documentID = root.get("documentId").asText();
-                        codes = new HashMap<>();
+                      this.documentID = root.get("documentId").asText();
+                      codes = new HashMap<>();
                         codes.put("readonlyCode", root.get("readonlycode").asText());
-                        if(root.has("editorCode")){
+                        isReader = !root.has("editorCode");
+                        if(!isReader){
                             codes.put("editorCode", root.get("editorCode").asText());
                         }
+                        documentTitle = root.get("documentTitle").asText();
+                        crdt = CRDT.deserialize(root.get("crdt").asText());
                         System.out.println("Joining document with ID: " + this.documentID);
+                        System.out.println("is Reader: " + isReader);
+                        ui.getMainPanel().displayDocument(crdt.toString(), documentTitle, isReader);
                         
                         // set up listeners
                         listen();
@@ -375,6 +387,8 @@ public class MyStompClient {
                         System.out.println("Client sent join message to /app/join/" + sessionCode);
                     } else {
                         System.out.println("Error: " + root.get("error").asText());
+                        // use the ui to show the error message
+                        ui.showErrorMessage("no document found with this session code");
                     }
                 }
             } else {

@@ -71,6 +71,10 @@ public class CollaborativeUI extends JFrame {
         return client;
     }
 
+    public void showErrorMessage(String message){
+        controller.showErrorMessage(message);
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {

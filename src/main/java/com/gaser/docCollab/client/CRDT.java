@@ -61,25 +61,28 @@ public class CRDT {
   private void insert(String parentID, CharacterNode newNode) {
     CharacterNode parentNode = map.get(parentID);
     CharacterNode siblingNode = parentNode.getNext();
+    
+    while(true){
+      if(siblingNode == null) break;
+      
+      int siblingTime = siblingNode.getTime();
+      int siblingUID = siblingNode.getUID();
+      int newNodeTime = newNode.getTime();
+      int newNodeUID = newNode.getUID();
+      int timeComparison = Integer.compare(siblingTime, newNodeTime);
+
+      if (timeComparison < 0 || (timeComparison == 0 && siblingUID >= newNodeUID)) {
+        break;
+      }
+    
+      parentNode = siblingNode;
+      siblingNode = parentNode.getNext();
+    }
 
     if (siblingNode == null) {
       parentNode.setNext(newNode);
       newNode.setPrev(parentNode);
-      System.out.println("Inserting node with ID: " + newNode.getID() + " after node with ID: " + parentNode.getID());
       map.put(newNode.getID(), newNode);
-      return;
-    }
-
-    int siblingTime = siblingNode.getTime();
-    int siblingUID = siblingNode.getUID();
-    int newNodeTime = newNode.getTime();
-    int newNodeUID = newNode.getUID();
-
-    // Compare time
-    // If times are equal, compare uids
-    int timeComparison = Integer.compare(siblingTime, newNodeTime);
-    if (timeComparison > 0 || (timeComparison == 0 && siblingUID < newNodeUID)) {
-      insert(siblingNode.getID(), newNode);
       return;
     }
 
@@ -109,7 +112,6 @@ public class CRDT {
       current = head;
       int index = 0;
       while (current != null) {
-        System.out.println("Current Idx: " + index + " Current Node: " + current.getValue());
         if (!current.isDeleted()) {
           if (index == position) {
             return current;

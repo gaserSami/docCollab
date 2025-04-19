@@ -31,19 +31,19 @@ public class WebsocketController {
         String docID = res.get("docID");
         
         // Set up response with active users and CRDT state
-        message.setDocumentID(docID);
+        // message.setDocumentID(docID);
         message.setActiveUsers(webSocketService.getActiveUsers(docID));
         
         // Only add CRDT to the response when someone joins (not for other updates)
-        message.setCRDT(webSocketService.getCRDT(docID).serialize());
+        // message.setCRDT(webSocketService.getCRDT(docID).serialize());
 
         // testing seraltion and deserialization
-        System.out.println("seralized crdt: " + message.getCRDT());
-        System.out.println("deserialized crdt: " + CRDT.deserialize(message.getCRDT()));
+        // System.out.println("seralized crdt: " + message.getCRDT());
+        // System.out.println("deserialized crdt: " + CRDT.deserialize(message.getCRDT()));
 
-        message.codes = new HashMap<>();
-        message.codes.put("readonlyCode", webSocketService.getReadOnlyCode(docID));
-        if(!message.isReader) message.codes.put("editorCode", webSocketService.getEditorCode(docID));
+        // message.codes = new HashMap<>();
+        // message.codes.put("readonlyCode", webSocketService.getReadOnlyCode(docID));
+        // if(!message.isReader) message.codes.put("editorCode", webSocketService.getEditorCode(docID));
         message.isReader = res.get("isReader").equals("true");
         message.setDocumentTitle(webSocketService.getDocument(docID).getTitle());
         

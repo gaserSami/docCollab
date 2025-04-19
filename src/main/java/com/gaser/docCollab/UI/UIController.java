@@ -43,8 +43,6 @@ public class UIController {
     public void handleJoin(String sessionCode){
         ui.getClient().connectToWebSocket();
         ui.getClient().joinDocument(sessionCode);
-        System.out.println("sessionCode from the top bar panel: " + sessionCode);
-        System.out.println("user joined session: " + sessionCode);
     }
 
     /**
@@ -66,6 +64,7 @@ public class UIController {
                 character,
                 this.ui.getClient().getCrdt().getNodeFromPosition(position).getID()));
         this.ui.getClient().incrementLamportTime();
+
         System.out.println("after character change");
     }
 
@@ -239,6 +238,10 @@ public class UIController {
         System.out.println("New document created: " + documentName + " with ID: " + res.get("docID"));
     }
 
+    public void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(ui, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
     /**
      * Handles the import option selection
      */
@@ -291,6 +294,7 @@ private void handleImportOption() {
 
             // Create a new document on the server
             HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName(), content.toString());
+            // HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName(), "abc");
             
             if (res.isEmpty()) {
                 JOptionPane.showMessageDialog(ui, 

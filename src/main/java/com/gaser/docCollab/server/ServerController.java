@@ -36,6 +36,8 @@ public class ServerController {
             System.out.println("sending editorCode: ");
               response.put("editorCode", webSocketService.getEditorCode(documentId));
           }
+          response.put("crdt", webSocketService.getCRDT(documentId).serialize());
+          response.put("documentTitle", webSocketService.getDocument(documentId).getTitle());
       } else {
           response.put("error", "Invalid session code");
       }
