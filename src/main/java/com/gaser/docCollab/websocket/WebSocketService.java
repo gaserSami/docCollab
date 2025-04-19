@@ -13,6 +13,7 @@ public class WebSocketService {
   private HashMap<String, Document> documents = new HashMap<>(); // docId -> Document
   private HashMap<String, String> readCode = new HashMap<>(); // readcode - > docId
   private HashMap<String, String> writeCode = new HashMap<>(); // writecode - > docId
+  private HashMap<String, Integer> lampertTime = new HashMap<>(); // docId - > lampertTime
 
   public HashMap<String, String> createDocument(int UID, String name, String initialContent){
     // return id, either readonlycode or the read
@@ -31,6 +32,7 @@ public class WebSocketService {
 
     this.readCode.put(readCode, id);
     this.writeCode.put(editorCode, id);
+    this.lampertTime.put(id, 0);
 
     HashMap<String, String> result = new HashMap<>();
     result.put("docID", id);
@@ -105,6 +107,14 @@ public boolean isReadCode(String code) {
 
 public Document getDocument(String docId) {
     return documents.get(docId);
+}
+
+public void setLampertTime(String docId, int time) {
+    lampertTime.put(docId, time);
+}
+
+public int getLampertTime(String docId) {
+    return lampertTime.get(docId);
 }
 
 }

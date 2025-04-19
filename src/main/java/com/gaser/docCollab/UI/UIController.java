@@ -56,16 +56,18 @@ public class UIController {
         System.out.println("charcter changed: " + character + " at position: " + position);
         System.out.println("updated");
         if (operationType == OperationType.DELETE)
-            position++;
-
-        this.ui.getClient().sendOperation(new Operation(
-                operationType, ui.getClient().getUID(),
-                this.ui.getClient().getLamportTime(),
-                character,
-                this.ui.getClient().getCrdt().getNodeFromPosition(position).getID()));
+        position++;
+        
         this.ui.getClient().incrementLamportTime();
 
-        System.out.println("after character change");
+        Operation operation = new Operation(
+            operationType, ui.getClient().getUID(),
+            this.ui.getClient().getLamportTime(),
+            character,
+            this.ui.getClient().getCrdt().getNodeFromPosition(position).getID());
+
+        this.ui.getClient().sendOperation(operation);
+        this.ui.getClient().onSocketOperation(operation, true); // local updates
     }
 
     public void onCursorChange(int position) {
@@ -440,13 +442,18 @@ private void handleImportOption() {
             return;
         }
 
-        this.ui.getClient().sendOperation(new Operation(
-                operation.getOperationType(), ui.getClient().getUID(),
-                this.ui.getClient().getLamportTime(),
-                operation.getValue(),
-                operation.getParentId()
-                ,operation.getSecondaryType()));
         this.ui.getClient().incrementLamportTime();
+
+        Operation operationToUndo = new Operation(
+            operation.getOperationType(), ui.getClient().getUID(),
+            this.ui.getClient().getLamportTime(),
+            operation.getValue(),
+            operation.getParentId()
+            ,operation.getSecondaryType());
+
+        this.ui.getClient().sendOperation(operationToUndo);
+        this.ui.getClient().onSocketOperation(operationToUndo, true); // local updates
+
         System.out.println("after undo");
     }
 
@@ -457,13 +464,18 @@ private void handleImportOption() {
             return;
         }
 
-        this.ui.getClient().sendOperation(new Operation(
-                operation.getOperationType(), ui.getClient().getUID(),
-                this.ui.getClient().getLamportTime(),
-                operation.getValue(),
-                operation.getParentId(),operation.getSecondaryType()
-                ));
         this.ui.getClient().incrementLamportTime();
+
+        Operation operationToRedo = new Operation(
+            operation.getOperationType(), ui.getClient().getUID(),
+            this.ui.getClient().getLamportTime(),
+            operation.getValue(),
+            operation.getParentId(),operation.getSecondaryType()
+        );
+
+        this.ui.getClient().sendOperation(operationToRedo);
+        this.ui.getClient().onSocketOperation(operationToRedo, true); // local updates
+
         System.out.println("after redo");
     }
 }

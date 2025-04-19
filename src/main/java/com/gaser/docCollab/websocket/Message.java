@@ -12,6 +12,7 @@ public class Message {
   private String crdt = null; // serialized CRDT object
   public HashMap<String, String> codes;
   public boolean isReader = false;
+  int lamportTime = 0;
 
   public Message(int UID, String content) {
     this.UID = UID;
@@ -67,6 +68,14 @@ public class Message {
 
   public void setDocumentTitle(String documentTitle) {
     this.documentTitle = documentTitle;
+  }
+
+  public void setLamportTime(int lamportTime) {
+    this.lamportTime = lamportTime;
+  }
+
+  public int getLamportTime() {
+    return lamportTime;
   }
   
 }

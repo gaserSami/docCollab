@@ -90,6 +90,51 @@ public class MyStompClient {
     this.activeUsers = activeUsers;
   }
 
+  public void onSocketOperation(Operation operation){
+    onSocketOperation(operation ,false);
+  }
+
+  public void onSocketOperation(Operation operation, boolean force){
+    if (operation.getUID() == getUID() && !force) return;
+    lamportTime = Math.max(lamportTime, operation.getTime()) + 1;
+    getCrdt().handleOperation(operation);
+    String crdtString = getCrdt().toString();
+    System.out.println(crdtString);
+    javax.swing.SwingUtilities.invokeLater(() -> {
+      getUI().getMainPanel().updateDocumentContent(crdtString);
+    });
+    System.out.println("Received operation: " + operation.toString());
+  }
+
+  public void onSocketUsers(Message message)
+  {
+    setActiveUsers(message.getActiveUsers());
+    lamportTime = Math.max(lamportTime, message.getLamportTime());
+
+    getUI().getSidebarPanel().updateActiveUsers(
+        IntStream.range(0, getActiveUserIds().size())
+            .mapToObj(idx -> {
+              Integer id = getActiveUserIds().get(idx);
+              Integer position = getCursorPositions().get(idx);
+              return "User " + id + " - " + position;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+  }
+
+  public void onSocketCursors(Cursor cursor){
+    onUserCursorChange(cursor);
+
+    getUI().getSidebarPanel().updateActiveUsers(
+        IntStream.range(0, getActiveUserIds().size())
+            .mapToObj(idx -> {
+              Integer id = getActiveUserIds().get(idx);
+              Integer position = getCursorPositions().get(idx);
+              return "User " + id + " - " + position;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+    System.out.println("Received cursor: " + cursor.toString());
+  }
+
   private void listen() {
     String tmp = "/topic/operations/" + getDocumentID();
     System.out.println(tmp);
@@ -106,13 +151,7 @@ public class MyStompClient {
         try {
           if (payload instanceof Operation) {
             Operation operation = (Operation) payload;
-            if (operation.getUID() != getUID())
-              lamportTime = Math.max(lamportTime, operation.getTime()) + 1;
-            getCrdt().handleOperation(operation);
-            String crdtString = getCrdt().toString();
-            System.out.println(crdtString);
-            getUI().getMainPanel().updateDocumentContent(crdtString);
-            System.out.println("Received operation: " + operation.toString());
+            onSocketOperation(operation);
           } else {
             System.out.println("Received unexpected payload type: " + payload.getClass());
           }
@@ -127,51 +166,16 @@ public class MyStompClient {
     session.subscribe("/topic/users/" + getDocumentID(), new StompFrameHandler() {
       @Override
       public Type getPayloadType(StompHeaders headers) {
-        System.out.println("Fy get payload type aho");
         return Message.class;
       }
 
       @Override
       public void handleFrame(StompHeaders headers, Object payload) {
-        System.out.println("E7na fy el topic users");
         try {
           System.out.println("received at /topic/" + getDocumentID() + "/users");
           if (payload instanceof Message) {
             Message message = (Message) payload;
-            Integer UID = message.getUID();
-            String content = message.getContent();
-            // if ("join".equals(content)) {
-            //   onUserJoin(UID);
-            // } else if ("leave".equals(content)) {
-            //   onUserLeave(UID);
-            // }
-            
-            setActiveUsers(message.getActiveUsers());
-
-            // if (getUID() == UID && "join".equals(content)) {
-            //   crdt = CRDT.deserialize(message.getCRDT());
-            //   String crdtString = "";
-            //   if(crdt != null){
-            //     crdtString = crdt.toString();
-            //   }
-            //   System.out.println("Initialized CRDT from server: " + crdtString);
-            //   getUI().getMainPanel().displayDocument(crdtString, message.getDocumentTitle(), message.isReader);
-            //   // getUI().getMainPanel().updateDocumentContent(crdtString);
-            //   // codes = message.codes;
-            // }
-
-            // System.out.println("Active users: " + message.getActiveUsers().toString());
-
-            getUI().getSidebarPanel().updateActiveUsers(
-                IntStream.range(0, getActiveUserIds().size())
-                    .mapToObj(idx -> {
-                      Integer id = getActiveUserIds().get(idx);
-                      Integer position = getCursorPositions().get(idx);
-                      return "User " + id + " - " + position;
-                    })
-                    .collect(java.util.stream.Collectors.toList()));
-            // getUI().getMainPanel().updateCursorPositions(message.getActiveUsers());
-            // System.out.println("Received UID: " + UID.toString());
+            onSocketUsers(message);
           } else {
             System.out.println("Received unexpected payload type: " + payload.getClass());
           }
@@ -195,18 +199,7 @@ public class MyStompClient {
         try {
           if (payload instanceof Cursor) {
             Cursor cursor = (Cursor) payload;
-            onUserCursorChange(cursor);
-
-            getUI().getSidebarPanel().updateActiveUsers(
-                IntStream.range(0, getActiveUserIds().size())
-                    .mapToObj(idx -> {
-                      Integer id = getActiveUserIds().get(idx);
-                      Integer position = getCursorPositions().get(idx);
-                      return "User " + id + " - " + position;
-                    })
-                    .collect(java.util.stream.Collectors.toList()));
-            // getUI().getMainPanel().updateCursorPositions(getActiveUsers());
-            System.out.println("Received cursor: " + cursor.toString());
+            onSocketCursors(cursor);
           } else {
             System.out.println("Received unexpected payload type: " + payload.getClass());
           }

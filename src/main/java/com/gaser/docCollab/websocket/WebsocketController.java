@@ -33,6 +33,8 @@ public class WebsocketController {
         // Set up response with active users and CRDT state
         // message.setDocumentID(docID);
         message.setActiveUsers(webSocketService.getActiveUsers(docID));
+        int docLampertTime = webSocketService.getLampertTime(docID);
+        message.setLamportTime(docLampertTime); // for syncing up
 
         // Only add CRDT to the response when someone joins (not for other updates)
         // message.setCRDT(webSocketService.getCRDT(docID).serialize());
@@ -66,6 +68,7 @@ public class WebsocketController {
 
     @MessageMapping("/operations/{documentID}")
     public void onSend(@DestinationVariable String documentID, Operation operation) {
+        webSocketService.setLampertTime(documentID, Math.max(webSocketService.getLampertTime(documentID), operation.getTime()) + 1);
         System.out.println("recieved message at /operations/" + documentID + " : " + operation.toString());
         webSocketService.handleOperation(documentID, operation);
         messagingTemplate.convertAndSend("/topic/operations/" + documentID, operation);
