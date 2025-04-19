@@ -25,28 +25,30 @@ public class WebsocketController {
     @MessageMapping("/join/{sessionCode}")
     public void onJoin(@DestinationVariable String sessionCode, Message message) {
         System.out.println("received message at /join/" + sessionCode + " : " + message.getContent());
-        
+
         // Add user to document and get document info
         HashMap<String, String> res = webSocketService.joinDocument(message.getUID(), sessionCode);
         String docID = res.get("docID");
-        
+
         // Set up response with active users and CRDT state
         // message.setDocumentID(docID);
         message.setActiveUsers(webSocketService.getActiveUsers(docID));
-        
+
         // Only add CRDT to the response when someone joins (not for other updates)
         // message.setCRDT(webSocketService.getCRDT(docID).serialize());
 
         // testing seraltion and deserialization
         // System.out.println("seralized crdt: " + message.getCRDT());
-        // System.out.println("deserialized crdt: " + CRDT.deserialize(message.getCRDT()));
+        // System.out.println("deserialized crdt: " +
+        // CRDT.deserialize(message.getCRDT()));
 
         // message.codes = new HashMap<>();
         // message.codes.put("readonlyCode", webSocketService.getReadOnlyCode(docID));
-        // if(!message.isReader) message.codes.put("editorCode", webSocketService.getEditorCode(docID));
+        // if(!message.isReader) message.codes.put("editorCode",
+        // webSocketService.getEditorCode(docID));
         message.isReader = res.get("isReader").equals("true");
         message.setDocumentTitle(webSocketService.getDocument(docID).getTitle());
-        
+
         // Broadcast to all clients including the sender
         messagingTemplate.convertAndSend("/topic/users/" + docID, message);
     }

@@ -153,7 +153,8 @@ public class CRDT {
     CharacterNode current = head;
 
     for (int i = 0; i < content.length(); i++) {
-      CharacterNode newNode = new CharacterNode(content.charAt(i), i, 0);
+      // CharacterNode newNode = new CharacterNode(content.charAt(i), i, 0);
+      CharacterNode newNode = new CharacterNode(content.charAt(i), -1, Integer.MAX_VALUE - i);
       current.setNext(newNode);
       newNode.setPrev(current);
       current = newNode;
