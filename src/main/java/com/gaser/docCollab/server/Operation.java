@@ -8,6 +8,7 @@ public class Operation {
   private int time;
   private Character value;
   private String parentId;
+  private SecondaryType secondaryType;
 
   public Operation(OperationType operationType, int UID, int time, Character value, String parentId) {
     this.operationType = operationType;
@@ -15,9 +16,21 @@ public class Operation {
     this.time = time;
     this.value = value;
     this.parentId = parentId;
+    this.secondaryType = SecondaryType.NORMAL;
+  }
+
+  public Operation(OperationType operationType, int UID, int time, Character value, String parentId,
+  SecondaryType secondaryType) {
+    this.operationType = operationType;
+    this.UID = UID;
+    this.time = time;
+    this.value = value;
+    this.parentId = parentId;
+    this.secondaryType = secondaryType;
   }
 
   public Operation() {
+    this.secondaryType = SecondaryType.NORMAL;
   }
 
   public OperationType getOperationType() {
@@ -92,5 +105,13 @@ public class Operation {
   // operation.toString());
   // return operation;
   // }
+
+  public SecondaryType getSecondaryType() {
+    return secondaryType;
+  }
+
+  public void setSecondaryType(SecondaryType secondaryType) {
+    this.secondaryType = secondaryType;
+  }
 
 }

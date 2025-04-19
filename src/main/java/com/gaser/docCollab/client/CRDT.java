@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
+import com.gaser.docCollab.server.SecondaryType;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -25,15 +26,26 @@ public class CRDT {
   }
 
   public void handleOperation(Operation operation) {
-    if (operation.getOperationType() == OperationType.INSERT) {
-      insert(operation.getParentId(), operation.getValue(), operation.getUID(), operation.getTime());
-    } else {
-      System.out
-          .println("Node with ID: " + operation.getParentId() + " exists in map: "
-              + map.containsKey(operation.getParentId()));
-      markAsDeleted(operation.getParentId());
+    if(operation.getSecondaryType() == SecondaryType.NORMAL){
+      if (operation.getOperationType() == OperationType.INSERT) {
+        insert(operation.getParentId(), operation.getValue(), operation.getUID(), operation.getTime());
+      } else {
+        // remove
+        markAsDeleted(operation.getParentId());
+      }
+    } else if(operation.getSecondaryType() == SecondaryType.UNDO){
+      if(operation.getOperationType() == OperationType.INSERT){
+        markAsDeleted(operation.getParentId());
+      } else if(operation.getOperationType() == OperationType.DELETE){
+        markAsNotDeleted(operation.getParentId());
+      }
+    } else{ // redo
+      if(operation.getOperationType() == OperationType.INSERT){
+        markAsNotDeleted(operation.getParentId());
+      } else if(operation.getOperationType() == OperationType.DELETE){
+        markAsDeleted(operation.getParentId());
+      }
     }
-    // TODO handle redo and undo
   }
 
   public void insert(String parentID, Character value, int UID, int time) {

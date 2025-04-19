@@ -5,6 +5,7 @@ import javax.swing.filechooser.FileFilter;
 
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
+import com.gaser.docCollab.server.SecondaryType;
 import com.gaser.docCollab.websocket.Cursor;
 
 import java.io.*;
@@ -25,11 +26,12 @@ public class UIController {
      */
     public void handleJoinButtonClick() {
         System.out.println("Join button clicked");
-        if(ui.getClient().getDocumentID() != null){
-            ui.getClient().leaveDocument(ui.getClient().getDocumentID());
-            ui.getClient().setDocumentID(null);
-        }
         this.ui.getClient().disconnectFromWebSocket();
+
+        // ui.getClient().setDocumentID(res.get("docID"));
+        // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
+        // ui.getClient().codes.put("editorCode", res.get("editorCode"));
+
         String sessionCode = ui.getTopBarPanel().getSessionCode();
         if (sessionCode.isEmpty()) {
             JOptionPane.showMessageDialog(ui, "Please enter a session code.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -64,7 +66,7 @@ public class UIController {
                 character,
                 this.ui.getClient().getCrdt().getNodeFromPosition(position).getID()));
         this.ui.getClient().incrementLamportTime();
-        System.out.println("after");
+        System.out.println("after character change");
     }
 
     public void onCursorChange(int position) {
@@ -226,6 +228,11 @@ public class UIController {
         }
         
         ui.getClient().disconnectFromWebSocket();
+
+        // ui.getClient().setDocumentID(res.get("docID"));
+        // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
+        // ui.getClient().codes.put("editorCode", res.get("editorCode"));
+
         handleJoin(res.get("editorCode"));
         
         // ui.getMainPanel().displayDocument("", documentName);
@@ -283,7 +290,7 @@ private void handleImportOption() {
             }
 
             // Create a new document on the server
-            HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName());
+            HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName(), content.toString());
             
             if (res.isEmpty()) {
                 JOptionPane.showMessageDialog(ui, 
@@ -294,9 +301,12 @@ private void handleImportOption() {
             }
             
             // Disconnect from any previous connection and join the new document
-            if(ui.getClient().getDocumentID() != null) ui.getClient().leaveDocument(ui.getClient().getDocumentID());
-            ui.getClient().setDocumentID(null);
             ui.getClient().disconnectFromWebSocket();
+
+            // ui.getClient().setDocumentID(res.get("docID"));
+            // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
+            // ui.getClient().codes.put("editorCode", res.get("editorCode"));
+
             handleJoin(res.get("editorCode"));
             
             // ui.getClient().getCrdt().fromString(content.toString());
@@ -419,19 +429,35 @@ private void handleImportOption() {
         }
     }
 
-    /**
-     * Handles the undo button click event
-     */
     public void handleUndoButtonClick() {
-        System.out.println("Undo button clicked");
-        // Add your undo functionality here
+        Operation operation = this.ui.getClient().getUndoLastOperation();
+        if (operation == null) {
+            System.out.println("No operation to undo");
+            return;
+        }
+
+        this.ui.getClient().sendOperation(new Operation(
+                operation.getOperationType(), ui.getClient().getUID(),
+                this.ui.getClient().getLamportTime(),
+                operation.getValue(),
+                operation.getParentId()));
+        this.ui.getClient().incrementLamportTime();
+        System.out.println("after undo");
     }
 
-    /**
-     * Handles the redo button click event
-     */
     public void handleRedoButtonClick() {
-        System.out.println("Redo button clicked");
-        // Add your redo functionality here
+        Operation operation = this.ui.getClient().getRedoLastOperation();
+        if (operation == null) {
+            System.out.println("No operation to redo");
+            return;
+        }
+
+        this.ui.getClient().sendOperation(new Operation(
+                operation.getOperationType(), ui.getClient().getUID(),
+                this.ui.getClient().getLamportTime(),
+                operation.getValue(),
+                operation.getParentId()));
+        this.ui.getClient().incrementLamportTime();
+        System.out.println("after redo");
     }
 }

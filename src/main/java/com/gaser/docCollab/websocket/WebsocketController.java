@@ -56,6 +56,9 @@ public class WebsocketController {
         System.out.println("recieved message at /leave/" + docID + " : " + message.getContent());
         webSocketService.leaveDocument(message.getUID(), docID);
         message.setActiveUsers(webSocketService.getActiveUsers(docID));
+
+        System.out.println("user: " + message.getUID() + " left document: " + docID);
+        System.out.println("active users: " + message.getActiveUsers().toString());
         messagingTemplate.convertAndSend("/topic/users/" + docID, message);
     }
 

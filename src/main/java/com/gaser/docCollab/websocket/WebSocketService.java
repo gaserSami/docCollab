@@ -22,8 +22,6 @@ public class WebSocketService {
 
     Document document = new Document(id, name, UID);
     if (initialContent != null && !initialContent.isEmpty()) {
-      // Initialize the CRDT with the provided content
-      // This depends on your CRDT implementation
       document.initializeContent(initialContent);
   }
 
@@ -99,6 +97,10 @@ public String getReadOnlyCode(String docId) {
 public String getEditorCode(String docId) {
     return documents.get(docId).getEditorCode();
 
+}
+
+public boolean isReadCode(String code) {
+    return readCode.containsKey(code);
 }
 
 public Document getDocument(String docId) {

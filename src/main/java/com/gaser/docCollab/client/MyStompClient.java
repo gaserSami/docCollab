@@ -19,18 +19,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaser.docCollab.UI.CollaborativeUI;
 import com.gaser.docCollab.server.Operation;
+import com.gaser.docCollab.server.SecondaryType;
 import com.gaser.docCollab.websocket.Cursor;
 import com.gaser.docCollab.websocket.Message;
 
 import org.springframework.web.socket.sockjs.client.Transport;
 import java.util.List;
+import java.util.Stack;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 
 public class MyStompClient {
   private StompSession session;
@@ -41,6 +42,8 @@ public class MyStompClient {
   private CRDT crdt;
   private CollaborativeUI ui;
   private int lamportTime = 0;
+  private Stack<Operation> undoStack = new Stack<>();
+  private Stack<Operation> redoStack = new Stack<>();
 
   public MyStompClient(int UID, CollaborativeUI ui) {
     this.UID = UID;
@@ -152,7 +155,7 @@ public class MyStompClient {
               System.out.println("Initialized CRDT from server: " + crdtString);
               getUI().getMainPanel().displayDocument(crdtString, message.getDocumentTitle(), message.isReader);
               // getUI().getMainPanel().updateDocumentContent(crdtString);
-              codes = message.codes;
+              // codes = message.codes;
             }
 
             System.out.println("Active users: " + message.getActiveUsers().toString());
@@ -225,6 +228,7 @@ public class MyStompClient {
       session = stompClient.connectAsync(url, sessionHandler).get();
 
     } catch (Exception e) {
+      System.out.println("Error connecting to WebSocket: " + e.getMessage());
       e.printStackTrace();
     }
   }
@@ -232,12 +236,18 @@ public class MyStompClient {
   public void disconnectFromWebSocket() {
     if (session != null && session.isConnected()) {
       try {
+        String tmp = this.documentID;
         // First leave the current document to notify other users
-        leaveDocument(this.documentID);
-
+        if(this.documentID != null){
+          leaveDocument(this.documentID);
+          this.documentID = null;
+          this.codes = new HashMap<>();
+        }
+        
         // Then disconnect the session
         session.disconnect();
-        System.out.println("Disconnected from WebSocket for document: " + this.documentID);
+
+        System.out.println("Disconnected from WebSocket for document: " + tmp);
 
         // Clear session reference
         session = null;
@@ -245,6 +255,7 @@ public class MyStompClient {
         // Clear active users and cursor positions
         activeUsers.clear();
       } catch (Exception e) {
+        System.out.println("Error disconnecting from WebSocket: " + e.getMessage());
         e.printStackTrace();
       }
     }
@@ -293,6 +304,20 @@ public class MyStompClient {
 
   public void sendOperation(Operation operation) {
     if (session != null && session.isConnected()) {
+      // check the secondary option
+      Operation stackOperation = new Operation(operation.getOperationType(), operation.getUID(), 
+      operation.getTime(), operation.getValue(),
+       operation.getParentId());
+      if(operation.getSecondaryType() == SecondaryType.NORMAL){
+        stackOperation.setSecondaryType(SecondaryType.UNDO);
+        undoStack.push(stackOperation);
+      } else if(operation.getSecondaryType() == SecondaryType.UNDO){
+        stackOperation.setSecondaryType(SecondaryType.REDO);
+        redoStack.push(stackOperation);
+      } else if(operation.getSecondaryType() == SecondaryType.REDO){
+        stackOperation.setSecondaryType(SecondaryType.UNDO);
+        undoStack.push(stackOperation);
+      }
       session.send("/app/operations/" + documentID, operation);
       System.out.println("Client Sent Operation to /app/operations/" + documentID + " : " + operation.toString());
     } else {
@@ -335,6 +360,11 @@ public class MyStompClient {
                     // Set the documentID in the client
                     if (root.has("documentId")) {
                         this.documentID = root.get("documentId").asText();
+                        codes = new HashMap<>();
+                        codes.put("readonlyCode", root.get("readonlycode").asText());
+                        if(root.has("editorCode")){
+                            codes.put("editorCode", root.get("editorCode").asText());
+                        }
                         System.out.println("Joining document with ID: " + this.documentID);
                         
                         // set up listeners
@@ -420,10 +450,10 @@ public class MyStompClient {
                 response.put("readonlyCode", root.get("readonlyCode").asText());
                 response.put("editorCode", root.get("editorCode").asText());
                 
-                // Set the document ID for this client correctly
-                this.documentID = response.get("docID");
-                this.codes.put("readonlyCode", response.get("readonlyCode"));
-                this.codes.put("editorCode", response.get("editorCode"));
+                // // Set the document ID for this client correctly
+                // this.documentID = response.get("docID");
+                // this.codes.put("readonlyCode", response.get("readonlyCode"));
+                // this.codes.put("editorCode", response.get("editorCode"));
                 
                 System.out.println("Document created successfully with ID: " + this.documentID);
             }
@@ -449,6 +479,24 @@ public class MyStompClient {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+  }
+
+  public Operation getUndoLastOperation() {
+    if (!undoStack.isEmpty()) {
+      return undoStack.pop();
+    } else {
+      System.out.println("No operations to undo.");
+      return null;
+    }
+  }
+
+  public Operation getRedoLastOperation() {
+    if (!redoStack.isEmpty()) {
+      return redoStack.pop();
+    } else {
+      System.out.println("No operations to redo.");
+      return null;
+    }
   }
 
 }

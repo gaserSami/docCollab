@@ -79,6 +79,8 @@ public class CollaborativeUI extends JFrame {
                 e.printStackTrace();
             }
             CollaborativeUI ui = new CollaborativeUI();
+            // UUID userId = UUID.randomUUID();
+            // MyStompClient client = new MyStompClient(userId, ui);
             MyStompClient client = new MyStompClient(new Random().nextInt(100), ui);
             ui.setClient(client);
         });
