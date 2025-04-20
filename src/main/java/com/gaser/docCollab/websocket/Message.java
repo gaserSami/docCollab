@@ -1,4 +1,5 @@
 package com.gaser.docCollab.websocket;
+
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -78,5 +79,5 @@ public class Message {
   public int getLamportTime() {
     return lamportTime;
   }
-  
+
 }

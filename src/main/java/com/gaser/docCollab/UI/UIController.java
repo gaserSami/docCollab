@@ -40,7 +40,7 @@ public class UIController {
         handleJoin(sessionCode);
     }
 
-    public void handleJoin(String sessionCode){
+    public void handleJoin(String sessionCode) {
         ui.getClient().connectToWebSocket();
         ui.getClient().joinDocument(sessionCode);
     }
@@ -54,15 +54,15 @@ public class UIController {
      */
     public void onCharacterChange(char character, int position, OperationType operationType) {
         if (operationType == OperationType.DELETE)
-        position++;
-        
+            position++;
+
         this.ui.getClient().incrementLamportTime();
 
         Operation operation = new Operation(
-            operationType, ui.getClient().getUID(),
-            this.ui.getClient().getLamportTime(),
-            character,
-            this.ui.getClient().getCrdt().getNodeFromPosition(position).getID());
+                operationType, ui.getClient().getUID(),
+                this.ui.getClient().getLamportTime(),
+                character,
+                this.ui.getClient().getCrdt().getNodeFromPosition(position).getID());
 
         this.ui.getClient().sendOperations(java.util.Collections.singletonList(operation));
         this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operation), true); // local updates
@@ -77,10 +77,10 @@ public class UIController {
             this.ui.getClient().incrementLamportTime();
 
             Operation operation = new Operation(
-                OperationType.INSERT, ui.getClient().getUID(),
-                this.ui.getClient().getLamportTime(),
-                text.charAt(i),
-                i == 0 ? this.ui.getClient().getCrdt().getNodeFromPosition(position + i).getID() : null);
+                    OperationType.INSERT, ui.getClient().getUID(),
+                    this.ui.getClient().getLamportTime(),
+                    text.charAt(i),
+                    i == 0 ? this.ui.getClient().getCrdt().getNodeFromPosition(position + i).getID() : null);
 
             operations.add(operation);
         }
@@ -91,8 +91,8 @@ public class UIController {
 
     public void onCursorChange(int position) {
         Cursor cursor = new Cursor(
-            ui.getClient().getUID(),
-            position);
+                ui.getClient().getUID(),
+                position);
 
         this.ui.getClient().sendCursor(cursor);
         this.ui.getClient().onSocketCursors(cursor, true);
@@ -222,11 +222,11 @@ public class UIController {
 
     private void handleNewOption() {
         // Prompt user for document name
-        String documentName = JOptionPane.showInputDialog(ui, 
-                "Enter a name for the new document:", 
-                "New Document", 
+        String documentName = JOptionPane.showInputDialog(ui,
+                "Enter a name for the new document:",
+                "New Document",
                 JOptionPane.QUESTION_MESSAGE);
-        
+
         // If user cancels or enters empty string, use default name
         if (documentName == null) {
             return; // User canceled the operation
@@ -236,17 +236,17 @@ public class UIController {
             // Add .txt extension if not present
             documentName = documentName + ".txt";
         }
-        
+
         HashMap<String, String> res = ui.getClient().createDocument(documentName);
-        
+
         if (res.isEmpty()) {
-            JOptionPane.showMessageDialog(ui, 
-                "Failed to create document. Please try again.", 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(ui,
+                    "Failed to create document. Please try again.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         ui.getClient().disconnectFromWebSocket();
 
         // ui.getClient().setDocumentID(res.get("docID"));
@@ -254,7 +254,7 @@ public class UIController {
         // ui.getClient().codes.put("editorCode", res.get("editorCode"));
 
         handleJoin(res.get("editorCode"));
-        
+
         // ui.getMainPanel().displayDocument("", documentName);
     }
 
@@ -266,83 +266,85 @@ public class UIController {
      * Handles the import option selection
      */
     /**
- * Handles the import option selection
- */
-private void handleImportOption() {
-    JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setDialogTitle("Import Text File");
-    fileChooser.setFileFilter(new FileFilter() {
-        @Override
-        public boolean accept(File file) {
-            return file.isDirectory() || file.getName().toLowerCase().endsWith(".txt");
-        }
-
-        @Override
-        public String getDescription() {
-            return "Text Files (*.txt)";
-        }
-    });
-
-    int result = fileChooser.showOpenDialog(ui);
-    if (result == JFileChooser.APPROVE_OPTION) {
-        File selectedFile = fileChooser.getSelectedFile();
-        if (!selectedFile.getName().toLowerCase().endsWith(".txt")) {
-            JOptionPane.showMessageDialog(ui,
-                    "Only text (.txt) files are supported.",
-                    "Invalid File Type",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        try {
-            // Read the content of the file
-            Scanner scanner = new Scanner(selectedFile);
-            StringBuilder content = new StringBuilder();
-            while (scanner.hasNextLine()) {
-                content.append(scanner.nextLine()).append("\n");
+     * Handles the import option selection
+     */
+    private void handleImportOption() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Import Text File");
+        fileChooser.setFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                return file.isDirectory() || file.getName().toLowerCase().endsWith(".txt");
             }
-            scanner.close();
 
-            // Check if content appears to be binary/non-text
-            if (containsBinaryData(content.toString())) {
+            @Override
+            public String getDescription() {
+                return "Text Files (*.txt)";
+            }
+        });
+
+        int result = fileChooser.showOpenDialog(ui);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            if (!selectedFile.getName().toLowerCase().endsWith(".txt")) {
                 JOptionPane.showMessageDialog(ui,
-                        "The file doesn't appear to contain valid text content.",
-                        "Invalid Content",
+                        "Only text (.txt) files are supported.",
+                        "Invalid File Type",
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // Create a new document on the server
-            HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName(), content.toString());
-            // HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName(), "abc");
-            
-            if (res.isEmpty()) {
-                JOptionPane.showMessageDialog(ui, 
-                    "Failed to create document. Please try again.", 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
-                return;
+            try {
+                // Read the content of the file
+                Scanner scanner = new Scanner(selectedFile);
+                StringBuilder content = new StringBuilder();
+                while (scanner.hasNextLine()) {
+                    content.append(scanner.nextLine()).append("\n");
+                }
+                scanner.close();
+
+                // Check if content appears to be binary/non-text
+                if (containsBinaryData(content.toString())) {
+                    JOptionPane.showMessageDialog(ui,
+                            "The file doesn't appear to contain valid text content.",
+                            "Invalid Content",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Create a new document on the server
+                HashMap<String, String> res = ui.getClient().createDocument(selectedFile.getName(), content.toString());
+                // HashMap<String, String> res =
+                // ui.getClient().createDocument(selectedFile.getName(), "abc");
+
+                if (res.isEmpty()) {
+                    JOptionPane.showMessageDialog(ui,
+                            "Failed to create document. Please try again.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Disconnect from any previous connection and join the new document
+                ui.getClient().disconnectFromWebSocket();
+
+                // ui.getClient().setDocumentID(res.get("docID"));
+                // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
+                // ui.getClient().codes.put("editorCode", res.get("editorCode"));
+
+                handleJoin(res.get("editorCode"));
+
+                // ui.getClient().getCrdt().fromString(content.toString());
+                // Display the document with the imported content and filename
+                // ui.getMainPanel().displayDocument(ui.getClient().getCrdt().toString(),
+                // selectedFile.getName());
+            } catch (FileNotFoundException e) {
+                JOptionPane.showMessageDialog(ui,
+                        "Could not open the file: " + e.getMessage(),
+                        "File Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
-            
-            // Disconnect from any previous connection and join the new document
-            ui.getClient().disconnectFromWebSocket();
-
-            // ui.getClient().setDocumentID(res.get("docID"));
-            // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
-            // ui.getClient().codes.put("editorCode", res.get("editorCode"));
-
-            handleJoin(res.get("editorCode"));
-            
-            // ui.getClient().getCrdt().fromString(content.toString());
-            // Display the document with the imported content and filename
-            // ui.getMainPanel().displayDocument(ui.getClient().getCrdt().toString(), selectedFile.getName());
-        } catch (FileNotFoundException e) {
-            JOptionPane.showMessageDialog(ui,
-                    "Could not open the file: " + e.getMessage(),
-                    "File Error",
-                    JOptionPane.ERROR_MESSAGE);
         }
-    }
     }
 
     /**
@@ -459,14 +461,14 @@ private void handleImportOption() {
         this.ui.getClient().incrementLamportTime();
 
         Operation operationToUndo = new Operation(
-            operation.getOperationType(), ui.getClient().getUID(),
-            this.ui.getClient().getLamportTime(),
-            operation.getValue(),
-            operation.getParentId()
-            ,operation.getSecondaryType());
+                operation.getOperationType(), ui.getClient().getUID(),
+                this.ui.getClient().getLamportTime(),
+                operation.getValue(),
+                operation.getParentId(), operation.getSecondaryType());
 
         this.ui.getClient().sendOperations(java.util.Collections.singletonList(operationToUndo));
-        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operationToUndo), true); // local updates
+        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operationToUndo), true); // local
+                                                                                                            // updates
     }
 
     public void handleRedoButtonClick() {
@@ -479,13 +481,13 @@ private void handleImportOption() {
         this.ui.getClient().incrementLamportTime();
 
         Operation operationToRedo = new Operation(
-            operation.getOperationType(), ui.getClient().getUID(),
-            this.ui.getClient().getLamportTime(),
-            operation.getValue(),
-            operation.getParentId(),operation.getSecondaryType()
-        );
+                operation.getOperationType(), ui.getClient().getUID(),
+                this.ui.getClient().getLamportTime(),
+                operation.getValue(),
+                operation.getParentId(), operation.getSecondaryType());
 
         this.ui.getClient().sendOperations(java.util.Collections.singletonList(operationToRedo));
-        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operationToRedo), true); // local updates
+        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operationToRedo), true); // local
+                                                                                                            // updates
     }
 }
