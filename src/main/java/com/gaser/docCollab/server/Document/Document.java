@@ -1,4 +1,5 @@
 package com.gaser.docCollab.server.Document;
+
 import java.util.HashMap;
 
 import com.gaser.docCollab.client.CRDT;
@@ -12,54 +13,54 @@ public class Document {
     private String editorCode;
     private CRDT crdt;
     private HashMap<Integer, Integer> activeUsers = new HashMap<Integer, Integer>(); // user and its cursor pos
-    
+
     public Document() {
         this.crdt = new CRDT();
     }
-    
+
     public Document(String id, String title, int ownerId) {
         this.id = id;
         this.title = title;
         this.ownerId = ownerId;
         this.crdt = new CRDT();
     }
-    
+
     public String getId() {
         return id;
     }
-    
+
     public void setId(String id) {
         this.id = id;
     }
-    
+
     public String getTitle() {
         return title;
     }
-    
+
     public void setTitle(String title) {
         this.title = title;
     }
-    
+
     public int getOwnerId() {
         return ownerId;
     }
-    
+
     public void setOwnerId(int ownerId) {
         this.ownerId = ownerId;
     }
-    
+
     public String getReadonlyCode() {
         return readonlyCode;
     }
-    
+
     public void setReadonlyCode(String readonlyCode) {
         this.readonlyCode = readonlyCode;
     }
-    
+
     public String getEditorCode() {
         return editorCode;
     }
-    
+
     public void setEditorCode(String editorCode) {
         this.editorCode = editorCode;
     }
@@ -96,7 +97,7 @@ public class Document {
         activeUsers.clear();
     }
 
-    public void initializeContent(String initialContent){
+    public void initializeContent(String initialContent) {
         crdt.fromString(initialContent);
     }
 }

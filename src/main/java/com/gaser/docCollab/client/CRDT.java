@@ -27,21 +27,23 @@ public class CRDT {
     map.put(String.valueOf(0) + "," + Integer.MAX_VALUE, head);
   }
 
-  public void handleOperations(List<Operation> operations){
-    try{
+  public void handleOperations(List<Operation> operations) {
+    try {
       writeLock.lock();
-      if(operations.size() == 1){
+      if (operations.size() == 1) {
         handleOperation(operations.get(0));
         return;
       }
       // if we are here we know that its a paste operation
-      
+
       // create a seperate list then simply call the insert on the root node
-      CharacterNode localRoot = new CharacterNode(operations.get(0).getValue(), operations.get(0).getTime(), operations.get(0).getUID());
+      CharacterNode localRoot = new CharacterNode(operations.get(0).getValue(), operations.get(0).getTime(),
+          operations.get(0).getUID());
       map.put(localRoot.getID(), localRoot);
 
-      for(int i = 1; i < operations.size(); i++){
-        CharacterNode newNode = new CharacterNode(operations.get(i).getValue(), operations.get(i).getTime(), operations.get(i).getUID());
+      for (int i = 1; i < operations.size(); i++) {
+        CharacterNode newNode = new CharacterNode(operations.get(i).getValue(), operations.get(i).getTime(),
+            operations.get(i).getUID());
         localRoot.setNext(newNode);
         newNode.setPrev(localRoot);
         map.put(newNode.getID(), newNode);
@@ -54,26 +56,26 @@ public class CRDT {
     } finally {
       writeLock.unlock();
     }
-}
+  }
 
   public void handleOperation(Operation operation) {
-    if(operation.getSecondaryType() == SecondaryType.NORMAL){
+    if (operation.getSecondaryType() == SecondaryType.NORMAL) {
       if (operation.getOperationType() == OperationType.INSERT) {
         insert(operation.getParentId(), operation.getValue(), operation.getUID(), operation.getTime());
       } else {
         // remove
         markAsDeleted(operation.getParentId());
       }
-    } else if(operation.getSecondaryType() == SecondaryType.UNDO){
-      if(operation.getOperationType() == OperationType.INSERT){
+    } else if (operation.getSecondaryType() == SecondaryType.UNDO) {
+      if (operation.getOperationType() == OperationType.INSERT) {
         markAsDeleted(map.get(operation.getParentId()).getNext().getID());
-      } else if(operation.getOperationType() == OperationType.DELETE){
+      } else if (operation.getOperationType() == OperationType.DELETE) {
         markAsNotDeleted(operation.getParentId());
       }
-    } else{ // redo
-      if(operation.getOperationType() == OperationType.INSERT){
+    } else { // redo
+      if (operation.getOperationType() == OperationType.INSERT) {
         markAsNotDeleted(map.get(operation.getParentId()).getNext().getID());
-      } else if(operation.getOperationType() == OperationType.DELETE){
+      } else if (operation.getOperationType() == OperationType.DELETE) {
         markAsDeleted(operation.getParentId());
       }
     }
@@ -82,7 +84,7 @@ public class CRDT {
   public void insert(String parentID, Character value, int UID, int time) {
     try {
       writeLock.lock();
-      if(!map.containsKey(parentID)) {
+      if (!map.containsKey(parentID)) {
         waitingOn.putIfAbsent(parentID, new ArrayList<>());
         waitingOn.get(parentID).add(new CharacterNode(value, time, UID));
         return;
@@ -90,7 +92,7 @@ public class CRDT {
       CharacterNode newNode = new CharacterNode(value, time, UID);
       insert(parentID, newNode);
       // inserted so we check
-      if(waitingOn.containsKey(newNode.getID())){
+      if (waitingOn.containsKey(newNode.getID())) {
         for (CharacterNode node : waitingOn.get(newNode.getID())) {
           insert(newNode.getID(), node.getValue(), node.getUID(), node.getTime());
         }
@@ -107,10 +109,11 @@ public class CRDT {
   private void insert(String parentID, CharacterNode newNode) {
     CharacterNode parentNode = map.get(parentID);
     CharacterNode siblingNode = parentNode.getNext();
-    
-    while(true){
-      if(siblingNode == null) break;
-      
+
+    while (true) {
+      if (siblingNode == null)
+        break;
+
       int siblingTime = siblingNode.getTime();
       int siblingUID = siblingNode.getUID();
       int newNodeTime = newNode.getTime();
@@ -120,7 +123,7 @@ public class CRDT {
       if (timeComparison < 0 || (timeComparison == 0 && siblingUID >= newNodeUID)) {
         break;
       }
-    
+
       parentNode = siblingNode;
       siblingNode = parentNode.getNext();
     }
@@ -194,7 +197,7 @@ public class CRDT {
     return sb.toString();
   }
 
-  public void fromString(String content){
+  public void fromString(String content) {
     CharacterNode current = head;
 
     for (int i = 0; i < content.length(); i++) {
@@ -208,61 +211,62 @@ public class CRDT {
   }
 
   public String serialize() {
-        List<NodeDTO> dtoList = new ArrayList<>();
-        for (CharacterNode node : map.values()) {
-            NodeDTO dto = new NodeDTO();
-            dto.value = node.getValue();
-            dto.time = node.getTime();
-            dto.UID = node.getUID();
-            dto.prevId = node.getPrev() != null ? node.getPrev().getID() : null;
-            dto.nextId = node.getNext() != null ? node.getNext().getID() : null;
-            dto.isDeleted = node.isDeleted();
-            dtoList.add(dto);
-        }
-        return new Gson().toJson(dtoList);
+    List<NodeDTO> dtoList = new ArrayList<>();
+    for (CharacterNode node : map.values()) {
+      NodeDTO dto = new NodeDTO();
+      dto.value = node.getValue();
+      dto.time = node.getTime();
+      dto.UID = node.getUID();
+      dto.prevId = node.getPrev() != null ? node.getPrev().getID() : null;
+      dto.nextId = node.getNext() != null ? node.getNext().getID() : null;
+      dto.isDeleted = node.isDeleted();
+      dtoList.add(dto);
+    }
+    return new Gson().toJson(dtoList);
   }
 
-public static CRDT deserialize(String json) {
-        Type listType = new TypeToken<List<NodeDTO>>() {}.getType();
-        List<NodeDTO> dtoList = new Gson().fromJson(json, listType);
+  public static CRDT deserialize(String json) {
+    Type listType = new TypeToken<List<NodeDTO>>() {
+    }.getType();
+    List<NodeDTO> dtoList = new Gson().fromJson(json, listType);
 
-        CRDT crdt = new CRDT();
-        crdt.map.clear();
+    CRDT crdt = new CRDT();
+    crdt.map.clear();
 
-        // First pass: create all nodes
-        HashMap<String, CharacterNode> tempMap = new HashMap<>();
-        for (NodeDTO dto : dtoList) {
-            CharacterNode node = new CharacterNode(dto.value, dto.time, dto.UID);
-            node.setDeleted(dto.isDeleted);
-            tempMap.put(node.getID(), node);
-        }
-
-        // Second pass: set prev/next links
-        for (NodeDTO dto : dtoList) {
-            CharacterNode node = tempMap.get(dto.UID + "," + dto.time);
-            if (dto.prevId != null) {
-                node.setPrev(tempMap.get(dto.prevId));
-            }
-            if (dto.nextId != null) {
-                node.setNext(tempMap.get(dto.nextId));
-            }
-        }
-
-        // Update CRDT head and map
-        // Identify head (dummy with UID=0 and time=MAX_VALUE)
-        String headId = 0 + "," + Integer.MAX_VALUE;
-        crdt.head = tempMap.get(headId);
-        crdt.map.putAll(tempMap);
-        return crdt;
+    // First pass: create all nodes
+    HashMap<String, CharacterNode> tempMap = new HashMap<>();
+    for (NodeDTO dto : dtoList) {
+      CharacterNode node = new CharacterNode(dto.value, dto.time, dto.UID);
+      node.setDeleted(dto.isDeleted);
+      tempMap.put(node.getID(), node);
     }
 
-    private static class NodeDTO {
-      Character value;
-      int time;
-      int UID;
-      String prevId;
-      String nextId;
-      boolean isDeleted;
+    // Second pass: set prev/next links
+    for (NodeDTO dto : dtoList) {
+      CharacterNode node = tempMap.get(dto.UID + "," + dto.time);
+      if (dto.prevId != null) {
+        node.setPrev(tempMap.get(dto.prevId));
+      }
+      if (dto.nextId != null) {
+        node.setNext(tempMap.get(dto.nextId));
+      }
+    }
+
+    // Update CRDT head and map
+    // Identify head (dummy with UID=0 and time=MAX_VALUE)
+    String headId = 0 + "," + Integer.MAX_VALUE;
+    crdt.head = tempMap.get(headId);
+    crdt.map.putAll(tempMap);
+    return crdt;
+  }
+
+  private static class NodeDTO {
+    Character value;
+    int time;
+    int UID;
+    String prevId;
+    String nextId;
+    boolean isDeleted;
   }
 
 }

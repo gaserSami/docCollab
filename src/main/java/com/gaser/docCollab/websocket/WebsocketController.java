@@ -61,7 +61,9 @@ public class WebsocketController {
 
     @MessageMapping("/operations/{documentID}")
     public void onSend(@DestinationVariable String documentID, List<Operation> operations) {
-        webSocketService.setLampertTime(documentID, Math.max(webSocketService.getLampertTime(documentID), operations.get(operations.size() - 1).getTime()) + 1);
+        webSocketService.setLampertTime(documentID,
+                Math.max(webSocketService.getLampertTime(documentID), operations.get(operations.size() - 1).getTime())
+                        + 1);
         webSocketService.handleOperations(documentID, operations);
         messagingTemplate.convertAndSend("/topic/operations/" + documentID, operations);
     }

@@ -37,7 +37,7 @@ public class MainDocumentPanel extends JPanel {
     public void displayDocument(String content, String fileName) {
         displayDocument(content, fileName, false);
     }
-    
+
     /**
      * Displays the document content in the panel
      * 
@@ -56,7 +56,7 @@ public class MainDocumentPanel extends JPanel {
         textArea.setWrapStyleWord(true);
 
         textArea.setEditable(!isReader);
-    
+
         // Add a visual indicator if in read-only mode
         if (isReader) {
             textArea.setBackground(new Color(245, 245, 245)); // Light gray background for read-only
@@ -65,10 +65,10 @@ public class MainDocumentPanel extends JPanel {
         // Override the paste action to detect paste events
         InputMap inputMap = textArea.getInputMap();
         ActionMap actionMap = textArea.getActionMap();
-        
+
         // Store the original paste action
         final Action defaultPasteAction = actionMap.get("paste");
-        
+
         // Create a custom paste action that calls onPaste
         actionMap.put("paste", new AbstractAction() {
             @Override
@@ -79,7 +79,7 @@ public class MainDocumentPanel extends JPanel {
                         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                         String pastedText = (String) clipboard.getData(DataFlavor.stringFlavor);
                         int caretPosition = textArea.getCaretPosition();
-                        
+
                         // Call onPaste function with the clipboard content and caret position
                         controller.onPaste(pastedText, caretPosition);
                     } catch (UnsupportedFlavorException | IOException ex) {
@@ -108,7 +108,7 @@ public class MainDocumentPanel extends JPanel {
                     }
                 }
             }
-        
+
             @Override
             public void removeUpdate(DocumentEvent e) {
                 if (isLocalChange && controller != null) {
@@ -119,7 +119,7 @@ public class MainDocumentPanel extends JPanel {
                     }
                 }
             }
-        
+
             @Override
             public void changedUpdate(DocumentEvent e) {
                 // Plain text components do not fire these events
@@ -159,6 +159,7 @@ public class MainDocumentPanel extends JPanel {
     /**
      * Gets the current document content
      * P
+     * 
      * @return The content as a string
      */
     public String getDocumentContent() {
@@ -169,7 +170,7 @@ public class MainDocumentPanel extends JPanel {
         if (textArea != null) {
             // Replace the current cursor positions with the new ones
             this.userCursorPositions = new HashMap<>(cursorPositions);
-            
+
             // Update the highlights on the EDT to avoid threading issues
             SwingUtilities.invokeLater(() -> {
                 highlightUserCursors();
@@ -180,75 +181,76 @@ public class MainDocumentPanel extends JPanel {
     private void highlightUserCursors() {
         // Temporarily disabled drawing cursor highlights
         /*
-        if (textArea == null) return;
-        
-        // Remove existing highlights
-        for (Object highlight : userCursorHighlights.values()) {
-            textArea.getHighlighter().removeHighlight(highlight);
-        }
-        userCursorHighlights.clear();
-        
-        // Add new highlights for each user
-        int index = 0;
-        for (Integer userId : userCursorPositions.keySet()) {
-            int position = userCursorPositions.get(userId);
-            if (position >= 0 && position <= textArea.getText().length()) {
-                try {
-                    // Get color for user
-                    String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(index % 4);
-                    Color color = Color.decode(colorHex);
-                    
-                    // Create a custom painter for the cursor
-                    CursorHighlightPainter painter = new CursorHighlightPainter(color, "User " + userId);
-                    
-                    // Add highlight at the cursor position
-                    Object highlight = textArea.getHighlighter().addHighlight(
-                            position, position + 1, painter);
-                    userCursorHighlights.put(userId, highlight);
-                    
-                    index++;
-                } catch (BadLocationException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        */
+         * if (textArea == null) return;
+         * 
+         * // Remove existing highlights
+         * for (Object highlight : userCursorHighlights.values()) {
+         * textArea.getHighlighter().removeHighlight(highlight);
+         * }
+         * userCursorHighlights.clear();
+         * 
+         * // Add new highlights for each user
+         * int index = 0;
+         * for (Integer userId : userCursorPositions.keySet()) {
+         * int position = userCursorPositions.get(userId);
+         * if (position >= 0 && position <= textArea.getText().length()) {
+         * try {
+         * // Get color for user
+         * String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(index % 4);
+         * Color color = Color.decode(colorHex);
+         * 
+         * // Create a custom painter for the cursor
+         * CursorHighlightPainter painter = new CursorHighlightPainter(color, "User " +
+         * userId);
+         * 
+         * // Add highlight at the cursor position
+         * Object highlight = textArea.getHighlighter().addHighlight(
+         * position, position + 1, painter);
+         * userCursorHighlights.put(userId, highlight);
+         * 
+         * index++;
+         * } catch (BadLocationException e) {
+         * e.printStackTrace();
+         * }
+         * }
+         * }
+         */
     }
 
     private class CursorHighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {
         private String username;
-        
+
         public CursorHighlightPainter(Color color, String username) {
             super(color);
             this.username = username;
         }
-        
+
         @Override
         public void paint(Graphics g, int offs0, int offs1, Shape bounds, JTextComponent c) {
             // Temporarily disabled drawing code
             /*
-            try {
-                Rectangle rect = c.modelToView(offs0);
-                if (rect != null) {
-                    // Draw a colored vertical line for the cursor
-                    g.setColor(getColor());
-                    g.fillRect(rect.x, rect.y, 2, rect.height);
-                    
-                    // Draw the username above the cursor
-                    g.setFont(new Font("Arial", Font.PLAIN, 10));
-                    FontMetrics fm = g.getFontMetrics();
-                    int width = fm.stringWidth(username);
-                    g.fillRect(rect.x - 2, rect.y - 15, width + 4, 14);
-                    g.setColor(Color.WHITE);
-                    g.drawString(username, rect.x, rect.y - 4);
-                }
-            } catch (BadLocationException e) {
-                // ignore
-            }
-            */
+             * try {
+             * Rectangle rect = c.modelToView(offs0);
+             * if (rect != null) {
+             * // Draw a colored vertical line for the cursor
+             * g.setColor(getColor());
+             * g.fillRect(rect.x, rect.y, 2, rect.height);
+             * 
+             * // Draw the username above the cursor
+             * g.setFont(new Font("Arial", Font.PLAIN, 10));
+             * FontMetrics fm = g.getFontMetrics();
+             * int width = fm.stringWidth(username);
+             * g.fillRect(rect.x - 2, rect.y - 15, width + 4, 14);
+             * g.setColor(Color.WHITE);
+             * g.drawString(username, rect.x, rect.y - 4);
+             * }
+             * } catch (BadLocationException e) {
+             * // ignore
+             * }
+             */
         }
     }
-    
+
     /**
      * Gets the current document filename
      * 
@@ -277,7 +279,7 @@ public class MainDocumentPanel extends JPanel {
             int diff = Math.abs(content.length() - textArea.getText().length());
             int currentCaretPosition = textArea.getCaretPosition();
             String currentText = textArea.getText();
-            
+
             // Find if it's an insertion or deletion and where it happened
             if (content.length() == currentText.length() + diff) {
                 // Insertion case - find where it was inserted
@@ -286,7 +288,7 @@ public class MainDocumentPanel extends JPanel {
                         // Change is at position i
                         if (i < currentCaretPosition) {
                             // If change is before cursor, increment cursor position
-                            currentCaretPosition+= diff;
+                            currentCaretPosition += diff;
                         }
                         break;
                     }
@@ -298,13 +300,13 @@ public class MainDocumentPanel extends JPanel {
                         // Change is at position i
                         if (i < currentCaretPosition) {
                             // If deletion is before cursor, decrement cursor position
-                            currentCaretPosition-= diff;
+                            currentCaretPosition -= diff;
                         }
                         break;
                     }
                 }
             }
-            
+
             isLocalChange = false;
             textArea.setText(content);
             // Make sure the adjusted caret position is valid

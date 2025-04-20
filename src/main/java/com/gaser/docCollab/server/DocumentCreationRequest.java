@@ -6,7 +6,8 @@ public class DocumentCreationRequest {
     private String content;
 
     // Constructors
-    public DocumentCreationRequest() {}
+    public DocumentCreationRequest() {
+    }
 
     public DocumentCreationRequest(int UID, String name, String content) {
         this.UID = UID;

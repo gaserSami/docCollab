@@ -16,7 +16,7 @@ public class CollaborativeUI extends JFrame {
 
     public CollaborativeUI(int UID) {
         this.UID = UID;
-        setTitle("Collaborative Tool" +" - UID: " + UID);
+        setTitle("Collaborative Tool" + " - UID: " + UID);
         setSize(1366, 768);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -73,7 +73,7 @@ public class CollaborativeUI extends JFrame {
         return client;
     }
 
-    public void showErrorMessage(String message){
+    public void showErrorMessage(String message) {
         controller.showErrorMessage(message);
     }
 

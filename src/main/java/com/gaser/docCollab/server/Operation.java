@@ -21,7 +21,7 @@ public class Operation {
   }
 
   public Operation(OperationType operationType, int UID, int time, Character value, String parentId,
-  SecondaryType secondaryType) {
+      SecondaryType secondaryType) {
     this.operationType = operationType;
     this.UID = UID;
     this.time = time;
@@ -33,7 +33,7 @@ public class Operation {
   public Operation() {
     this.secondaryType = SecondaryType.NORMAL;
   }
-  
+
   public OperationType getOperationType() {
     return operationType;
   }

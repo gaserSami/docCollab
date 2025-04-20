@@ -1,4 +1,5 @@
 package com.gaser.docCollab.websocket;
+
 import com.gaser.docCollab.server.Document.Document;
 import java.util.UUID;
 import com.gaser.docCollab.server.Operation;
@@ -18,7 +19,7 @@ public class WebSocketService {
   private ConcurrentHashMap<String, String> writeCode = new ConcurrentHashMap<>(); // writecode - > docId
   private ConcurrentHashMap<String, Integer> lampertTime = new ConcurrentHashMap<>(); // docId - > lampertTime
 
-  public HashMap<String, String> createDocument(int UID, String name, String initialContent){
+  public HashMap<String, String> createDocument(int UID, String name, String initialContent) {
     // return id, either readonlycode or the read
     String id = UUID.randomUUID().toString();
     String readCode = UUID.randomUUID().toString();
@@ -27,7 +28,7 @@ public class WebSocketService {
     Document document = new Document(id, name, UID);
     if (initialContent != null && !initialContent.isEmpty()) {
       document.initializeContent(initialContent);
-  }
+    }
 
     document.setReadonlyCode(readCode);
     document.setEditorCode(editorCode);
@@ -44,11 +45,12 @@ public class WebSocketService {
 
     return result;
   }
-  
-  public HashMap<String, String> joinDocument(int UID, String code){
+
+  public HashMap<String, String> joinDocument(int UID, String code) {
     boolean isReadCode = readCode.containsKey(code);
     boolean isEditorCode = writeCode.containsKey(code);
-    if (!isReadCode && !isEditorCode) return null;
+    if (!isReadCode && !isEditorCode)
+      return null;
 
     String docId = isReadCode ? readCode.get(code) : writeCode.get(code);
     Document document = documents.get(docId);
@@ -63,14 +65,13 @@ public class WebSocketService {
     return result;
   }
 
-  public void leaveDocument(int UID, String docId){
+  public void leaveDocument(int UID, String docId) {
     documents.get(docId).removeActiveUser(UID);
   }
 
   public HashMap<Integer, Integer> getActiveUsers(String docId) {
     return documents.get(docId).getActiveUsers();
   }
-
 
   public void handleOperations(String docId, List<Operation> operations) {
     documents.get(docId).getCrdt().handleOperations(operations);
@@ -87,37 +88,35 @@ public class WebSocketService {
       return writeCode.get(sessionCode);
     }
     return null;
-}
+  }
 
-public com.gaser.docCollab.client.CRDT getCRDT(String docId) {
+  public com.gaser.docCollab.client.CRDT getCRDT(String docId) {
     return documents.get(docId).getCrdt();
-}
+  }
 
-public String getReadOnlyCode(String docId) {
+  public String getReadOnlyCode(String docId) {
     return documents.get(docId).getReadonlyCode();
-}
+  }
 
-public String getEditorCode(String docId) {
+  public String getEditorCode(String docId) {
     return documents.get(docId).getEditorCode();
 
-}
+  }
 
-public boolean isReadCode(String code) {
+  public boolean isReadCode(String code) {
     return readCode.containsKey(code);
-}
+  }
 
-public Document getDocument(String docId) {
+  public Document getDocument(String docId) {
     return documents.get(docId);
-}
+  }
 
-public void setLampertTime(String docId, int time) {
+  public void setLampertTime(String docId, int time) {
     lampertTime.put(docId, time);
-}
+  }
 
-public int getLampertTime(String docId) {
+  public int getLampertTime(String docId) {
     return lampertTime.get(docId);
-}
+  }
 
 }
-
-
