@@ -90,9 +90,12 @@ public class UIController {
     }
 
     public void onCursorChange(int position) {
-        this.ui.getClient().sendCursor(new Cursor(
-                ui.getClient().getUID(),
-                position));
+        Cursor cursor = new Cursor(
+            ui.getClient().getUID(),
+            position);
+
+        this.ui.getClient().sendCursor(cursor);
+        this.ui.getClient().onSocketCursors(cursor, true);
     }
 
     /**

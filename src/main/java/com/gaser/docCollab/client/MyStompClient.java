@@ -40,7 +40,7 @@ public class MyStompClient {
   private String documentID = null;
   private String documentTitle = "null";
   public HashMap<String, String> codes;
-  private HashMap<Integer, Integer> activeUsers;
+  private HashMap<Integer, Integer>activeUsers;
   private boolean isReader = false;
   private CRDT crdt;
   private CollaborativeUI ui;
@@ -83,11 +83,7 @@ public class MyStompClient {
   //   }
   // }
 
-  public void onUserCursorChange(Cursor cursor) {
-    activeUsers.put(cursor.getUID(), cursor.getPos());
-  }
-
-  public void setActiveUsers(HashMap<Integer, Integer> activeUsers) {
+  public void setActiveUsers(HashMap<Integer, Integer>activeUsers) {
     this.activeUsers = activeUsers;
   }
 
@@ -121,8 +117,12 @@ public class MyStompClient {
           .collect(java.util.stream.Collectors.toList()));
   }
 
-  public void onSocketCursors(Cursor cursor){
-    onUserCursorChange(cursor);
+  public void onSocketCursors(Cursor cursor, boolean force)
+  {
+    if (cursor.getUID() == getUID() && !force) return;
+    activeUsers.put(cursor.getUID(), cursor.getPos());
+
+    System.out.println("in socket cursors the cursor data: " + cursor.toString());
 
     getUI().getSidebarPanel().updateActiveUsers(
       IntStream.range(0, getActiveUserIds().size())
@@ -133,6 +133,10 @@ public class MyStompClient {
             return userLabel + " • Position: " + position;
           })
           .collect(java.util.stream.Collectors.toList()));
+  }
+
+  public void onSocketCursors(Cursor cursor){
+    onSocketCursors(cursor, false);
   }
 
   private void listen() {
@@ -203,6 +207,7 @@ public class MyStompClient {
       public void handleFrame(StompHeaders headers, Object payload) {
         try {
           if (payload instanceof Cursor) {
+            System.out.println("in cursor in handle frame and the type of the payload is : ");
             Cursor cursor = (Cursor) payload;
             onSocketCursors(cursor);
           } else {
@@ -271,18 +276,14 @@ public class MyStompClient {
   }
 
   public List<Integer> getActiveUserIds() {
-    return activeUsers.keySet().stream()
-        .sorted()
-        .collect(java.util.stream.Collectors.toList());
+    return new ArrayList<>(activeUsers.keySet());
   }
 
   public List<Integer> getCursorPositions() {
-    return activeUsers.values().stream()
-        .sorted()
-        .collect(java.util.stream.Collectors.toList());
+    return new ArrayList<>(activeUsers.values());
   }
 
-  public HashMap<Integer, Integer> getActiveUsers() {
+  public HashMap<Integer, Integer>getActiveUsers() {
     return activeUsers;
   }
 

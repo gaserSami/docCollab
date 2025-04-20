@@ -2,6 +2,7 @@ package com.gaser.docCollab.server.Document;
 import java.util.HashMap;
 
 import com.gaser.docCollab.client.CRDT;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Document {
     private String id;
@@ -10,7 +11,7 @@ public class Document {
     private String readonlyCode;
     private String editorCode;
     private CRDT crdt;
-    private HashMap<Integer, Integer> activeUsers = new HashMap<>(); // user and its cursor pos
+    private HashMap<Integer, Integer> activeUsers = new HashMap<Integer, Integer>(); // user and its cursor pos
     
     public Document() {
         this.crdt = new CRDT();

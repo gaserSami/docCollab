@@ -4,6 +4,8 @@ import java.util.UUID;
 import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -11,10 +13,10 @@ import java.util.List;
 
 @Service
 public class WebSocketService {
-  private HashMap<String, Document> documents = new HashMap<>(); // docId -> Document
-  private HashMap<String, String> readCode = new HashMap<>(); // readcode - > docId
-  private HashMap<String, String> writeCode = new HashMap<>(); // writecode - > docId
-  private HashMap<String, Integer> lampertTime = new HashMap<>(); // docId - > lampertTime
+  private ConcurrentHashMap<String, Document> documents = new ConcurrentHashMap<>(); // docId -> Document
+  private ConcurrentHashMap<String, String> readCode = new ConcurrentHashMap<>(); // readcode - > docId
+  private ConcurrentHashMap<String, String> writeCode = new ConcurrentHashMap<>(); // writecode - > docId
+  private ConcurrentHashMap<String, Integer> lampertTime = new ConcurrentHashMap<>(); // docId - > lampertTime
 
   public HashMap<String, String> createDocument(int UID, String name, String initialContent){
     // return id, either readonlycode or the read

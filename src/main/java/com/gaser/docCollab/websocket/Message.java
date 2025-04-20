@@ -1,5 +1,6 @@
 package com.gaser.docCollab.websocket;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.gaser.docCollab.client.CRDT;
 
@@ -8,7 +9,7 @@ public class Message {
   String content;
   String documentID;
   String documentTitle;
-  private HashMap<Integer, Integer> activeUsers = new HashMap<>();
+  private HashMap<Integer, Integer> activeUsers = new HashMap<Integer, Integer>();
   private String crdt = null; // serialized CRDT object
   public HashMap<String, String> codes;
   public boolean isReader = false;

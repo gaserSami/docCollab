@@ -16,7 +16,7 @@ public class CollaborativeUI extends JFrame {
 
     public CollaborativeUI(int UID) {
         this.UID = UID;
-        setTitle("Collaborative Tool");
+        setTitle("Collaborative Tool" +" - UID: " + UID);
         setSize(1366, 768);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());

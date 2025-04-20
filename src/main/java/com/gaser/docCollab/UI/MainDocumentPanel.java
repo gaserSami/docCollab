@@ -130,6 +130,7 @@ public class MainDocumentPanel extends JPanel {
         textArea.addCaretListener(new CaretListener() {
             @Override
             public void caretUpdate(CaretEvent e) {
+                System.out.println("in Caret position listener");
                 if (isLocalChange && controller != null) {
                     controller.onCursorChange(e.getDot());
                 }
@@ -273,7 +274,7 @@ public class MainDocumentPanel extends JPanel {
      */
     public void updateDocumentContent(String content) {
         if (textArea != null) {
-            int diff = content.length() - textArea.getText().length();
+            int diff = Math.abs(content.length() - textArea.getText().length());
             int currentCaretPosition = textArea.getCaretPosition();
             String currentText = textArea.getText();
             
