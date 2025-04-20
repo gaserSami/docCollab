@@ -9,6 +9,7 @@ import com.gaser.docCollab.server.SecondaryType;
 import com.gaser.docCollab.websocket.Cursor;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
@@ -63,8 +64,29 @@ public class UIController {
             character,
             this.ui.getClient().getCrdt().getNodeFromPosition(position).getID());
 
-        this.ui.getClient().sendOperation(operation);
-        this.ui.getClient().onSocketOperation(operation, true); // local updates
+        this.ui.getClient().sendOperations(java.util.Collections.singletonList(operation));
+        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operation), true); // local updates
+    }
+
+    public void onPaste(String text, int position) {
+        this.ui.getClient().incrementLamportTime();
+
+        java.util.List<Operation> operations = new ArrayList<>();
+
+        for (int i = 0; i < text.length(); i++) {
+            this.ui.getClient().incrementLamportTime();
+
+            Operation operation = new Operation(
+                OperationType.INSERT, ui.getClient().getUID(),
+                this.ui.getClient().getLamportTime(),
+                text.charAt(i),
+                this.ui.getClient().getCrdt().getNodeFromPosition(position + i).getID());
+
+            operations.add(operation);
+        }
+
+        this.ui.getClient().sendOperations(operations);
+        this.ui.getClient().onSocketOperations(operations, true); // local updates
     }
 
     public void onCursorChange(int position) {
@@ -440,8 +462,8 @@ private void handleImportOption() {
             operation.getParentId()
             ,operation.getSecondaryType());
 
-        this.ui.getClient().sendOperation(operationToUndo);
-        this.ui.getClient().onSocketOperation(operationToUndo, true); // local updates
+        this.ui.getClient().sendOperations(java.util.Collections.singletonList(operationToUndo));
+        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operationToUndo), true); // local updates
     }
 
     public void handleRedoButtonClick() {
@@ -460,7 +482,7 @@ private void handleImportOption() {
             operation.getParentId(),operation.getSecondaryType()
         );
 
-        this.ui.getClient().sendOperation(operationToRedo);
-        this.ui.getClient().onSocketOperation(operationToRedo, true); // local updates
+        this.ui.getClient().sendOperations(java.util.Collections.singletonList(operationToRedo));
+        this.ui.getClient().onSocketOperations(java.util.Collections.singletonList(operationToRedo), true); // local updates
     }
 }

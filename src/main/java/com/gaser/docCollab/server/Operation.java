@@ -3,6 +3,7 @@ package com.gaser.docCollab.server;
 // time
 
 public class Operation {
+  private String ID;
   private OperationType operationType;
   private int UID;
   private int time;
@@ -32,7 +33,7 @@ public class Operation {
   public Operation() {
     this.secondaryType = SecondaryType.NORMAL;
   }
-
+  
   public OperationType getOperationType() {
     return operationType;
   }
@@ -46,7 +47,13 @@ public class Operation {
   }
 
   public String getID() { // node id
-    return UID + "," + time;
+    this.ID = UID + "," + time;
+    return ID;
+  }
+
+  public String setID(String id) { // node id
+    this.ID = id;
+    return id;
   }
 
   public void setUID(int UID) {

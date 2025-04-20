@@ -3,6 +3,7 @@ package com.gaser.docCollab.websocket;
 import com.gaser.docCollab.client.CRDT;
 import com.gaser.docCollab.server.Operation;
 
+import java.util.List;
 import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,10 +60,10 @@ public class WebsocketController {
     }
 
     @MessageMapping("/operations/{documentID}")
-    public void onSend(@DestinationVariable String documentID, Operation operation) {
-        webSocketService.setLampertTime(documentID, Math.max(webSocketService.getLampertTime(documentID), operation.getTime()) + 1);
-        webSocketService.handleOperation(documentID, operation);
-        messagingTemplate.convertAndSend("/topic/operations/" + documentID, operation);
+    public void onSend(@DestinationVariable String documentID, List<Operation> operations) {
+        webSocketService.setLampertTime(documentID, Math.max(webSocketService.getLampertTime(documentID), operations.get(operations.size() - 1).getTime()) + 1);
+        webSocketService.handleOperations(documentID, operations);
+        messagingTemplate.convertAndSend("/topic/operations/" + documentID, operations);
     }
 
     @MessageMapping("/cursors/{documentID}")

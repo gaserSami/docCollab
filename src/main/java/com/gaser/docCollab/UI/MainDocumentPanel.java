@@ -12,6 +12,11 @@ import javax.swing.text.JTextComponent;
 import com.gaser.docCollab.server.OperationType;
 
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.io.IOException;
 import java.util.HashMap;
 
 public class MainDocumentPanel extends JPanel {
@@ -56,6 +61,35 @@ public class MainDocumentPanel extends JPanel {
         if (isReader) {
             textArea.setBackground(new Color(245, 245, 245)); // Light gray background for read-only
         }
+
+        // Override the paste action to detect paste events
+        InputMap inputMap = textArea.getInputMap();
+        ActionMap actionMap = textArea.getActionMap();
+        
+        // Store the original paste action
+        final Action defaultPasteAction = actionMap.get("paste");
+        
+        // Create a custom paste action that calls onPaste
+        actionMap.put("paste", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (isLocalChange && controller != null) {
+                    try {
+                        // Get clipboard content
+                        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                        String pastedText = (String) clipboard.getData(DataFlavor.stringFlavor);
+                        int caretPosition = textArea.getCaretPosition();
+                        
+                        // Call onPaste function with the clipboard content and caret position
+                        controller.onPaste(pastedText, caretPosition);
+                    } catch (UnsupportedFlavorException | IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                // Execute the default paste action
+                defaultPasteAction.actionPerformed(e);
+            }
+        });
 
         // Add document listener to track changes
         textArea.getDocument().addDocumentListener(new DocumentListener() {

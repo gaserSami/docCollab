@@ -27,6 +27,34 @@ public class CRDT {
     map.put(String.valueOf(0) + "," + Integer.MAX_VALUE, head);
   }
 
+  public void handleOperations(List<Operation> operations){
+    try{
+      writeLock.lock();
+      if(operations.size() == 1){
+        handleOperation(operations.get(0));
+        return;
+      }
+      // if we are here we know that its a paste operation
+      
+      // create a seperate list then simply call the insert on the root node
+      CharacterNode localRoot = new CharacterNode(operations.get(0).getValue(), operations.get(0).getTime(), operations.get(0).getUID());
+  
+      for(int i = 1; i < operations.size(); i++){
+        CharacterNode newNode = new CharacterNode(operations.get(i).getValue(), operations.get(i).getTime(), operations.get(i).getUID());
+        localRoot.setNext(newNode);
+        newNode.setPrev(localRoot);
+        map.put(newNode.getID(), newNode);
+      }
+  
+      insert(operations.get(0).getParentId(), localRoot.getValue(), localRoot.getUID(), localRoot.getTime());
+    } catch (Exception e) {
+      System.out.println("Error handling operations: " + e.getMessage());
+      e.printStackTrace();
+    } finally {
+      writeLock.unlock();
+    }
+}
+
   public void handleOperation(Operation operation) {
     if(operation.getSecondaryType() == SecondaryType.NORMAL){
       if (operation.getOperationType() == OperationType.INSERT) {

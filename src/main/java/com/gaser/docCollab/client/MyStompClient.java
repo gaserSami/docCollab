@@ -1,5 +1,6 @@
 package com.gaser.docCollab.client;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
@@ -90,14 +91,14 @@ public class MyStompClient {
     this.activeUsers = activeUsers;
   }
 
-  public void onSocketOperation(Operation operation){
-    onSocketOperation(operation ,false);
+  public void onSocketOperations(List<Operation> operations){
+    onSocketOperations(operations ,false);
   }
 
-  public void onSocketOperation(Operation operation, boolean force){
-    if (operation.getUID() == getUID() && !force) return;
-    lamportTime = Math.max(lamportTime, operation.getTime()) + 1;
-    getCrdt().handleOperation(operation);
+  public void onSocketOperations(List<Operation> operations, boolean force){
+    if (operations.get(0).getUID() == getUID() && !force) return;
+    lamportTime = Math.max(lamportTime, operations.get(operations.size() - 1).getTime()) + 1;
+    getCrdt().handleOperations(operations);
     String crdtString = getCrdt().toString();
     javax.swing.SwingUtilities.invokeLater(() -> {
       getUI().getMainPanel().updateDocumentContent(crdtString);
@@ -140,15 +141,27 @@ public class MyStompClient {
     session.subscribe("/topic/operations/" + getDocumentID(), new StompFrameHandler() {
       @Override
       public Type getPayloadType(StompHeaders headers) {
-        return Operation.class;
+        System.out.println("in operations in payload type");
+        return List.class;
       }
 
       @Override
       public void handleFrame(StompHeaders headers, Object payload) {
         try {
-          if (payload instanceof Operation) {
-            Operation operation = (Operation) payload;
-            onSocketOperation(operation);
+          if (payload instanceof List) {
+            System.out.println("in operations in handle frame and the type of the payload is : " + payload.getClass());
+            List<?> rawList = (List<?>) payload;
+            List<Operation> operations = new ArrayList<>();
+
+            ObjectMapper mapper = new ObjectMapper();
+            for (Object item : rawList) {
+                // Convert each LinkedHashMap to Operation
+                Operation op = mapper.convertValue(item, Operation.class);
+                System.out.println("the deserialized operation : " + op.toString());
+                operations.add(op);
+            }
+            
+            onSocketOperations(operations);
           } else {
             System.out.println("Received unexpected payload type: " + payload.getClass());
           }
@@ -207,6 +220,7 @@ public class MyStompClient {
       List<Transport> transports = Collections.singletonList(new WebSocketTransport(new StandardWebSocketClient()));
       SockJsClient sockJsClient = new SockJsClient(transports);
       WebSocketStompClient stompClient = new WebSocketStompClient(sockJsClient);
+
       stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
       StompSessionHandler sessionHandler = new MyStompSessionHandler(this);
@@ -292,12 +306,19 @@ public class MyStompClient {
     return ui;
   }
 
-  public void sendOperation(Operation operation) {
-    if (session != null && session.isConnected()) {
-      // check the secondary option
-      Operation stackOperation = new Operation(operation.getOperationType(), operation.getUID(), 
-      operation.getTime(), operation.getValue(),
-       operation.getParentId());
+  public void sendOperations(List<Operation> operations) {
+    if (session == null || !session.isConnected()) {
+      System.out.println("Session is not connected. Cannot send operations.");
+      return;
+    }
+
+    for (Operation operation : operations) {
+      Operation stackOperation = new Operation(operation.getOperationType(), 
+      operation.getUID(), 
+      operation.getTime(), 
+      operation.getValue(),
+      operation.getParentId());
+
       if(operation.getSecondaryType() == SecondaryType.NORMAL){
         stackOperation.setSecondaryType(SecondaryType.UNDO);
         undoStack.push(stackOperation);
@@ -309,10 +330,9 @@ public class MyStompClient {
         stackOperation.setSecondaryType(SecondaryType.UNDO);
         undoStack.push(stackOperation);
       }
-      session.send("/app/operations/" + documentID, operation);
-    } else {
-      System.out.println("Session is not connected. Cannot send operation.");
     }
+
+      session.send("/app/operations/" + documentID, operations);
   }
 
   public void sendCursor(Cursor cursor) {

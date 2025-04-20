@@ -7,6 +7,7 @@ import com.gaser.docCollab.server.OperationType;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 
 @Service
 public class WebSocketService {
@@ -69,8 +70,8 @@ public class WebSocketService {
   }
 
 
-  public void handleOperation(String docId, Operation operation) {
-    documents.get(docId).getCrdt().handleOperation(operation);
+  public void handleOperations(String docId, List<Operation> operations) {
+    documents.get(docId).getCrdt().handleOperations(operations);
   }
 
   public void handleCursorUpdate(String docId, Cursor cursor) {
