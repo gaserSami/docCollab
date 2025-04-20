@@ -73,21 +73,28 @@ public class MainDocumentPanel extends JPanel {
         actionMap.put("paste", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (isLocalChange && controller != null) {
-                    try {
-                        // Get clipboard content
-                        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                        String pastedText = (String) clipboard.getData(DataFlavor.stringFlavor);
-                        int caretPosition = textArea.getCaretPosition();
-
-                        // Call onPaste function with the clipboard content and caret position
+                try {
+                    // Get clipboard content
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    String pastedText = (String) clipboard.getData(DataFlavor.stringFlavor);
+                    int caretPosition = textArea.getCaretPosition();
+        
+                    // // Temporarily disable local change tracking before pasting
+                    // isLocalChange = false;
+                    
+                    // // Execute the default paste action
+                    // defaultPasteAction.actionPerformed(e);
+                    
+                    // // Re-enable local change tracking after pasting completes
+                    // isLocalChange = true;
+                    
+                    // Call onPaste function with the clipboard content and caret position
+                    if (controller != null) {
                         controller.onPaste(pastedText, caretPosition);
-                    } catch (UnsupportedFlavorException | IOException ex) {
-                        ex.printStackTrace();
                     }
+                } catch (UnsupportedFlavorException | IOException ex) {
+                    ex.printStackTrace();
                 }
-                // Execute the default paste action
-                defaultPasteAction.actionPerformed(e);
             }
         });
 
@@ -279,32 +286,43 @@ public class MainDocumentPanel extends JPanel {
             int diff = Math.abs(content.length() - textArea.getText().length());
             int currentCaretPosition = textArea.getCaretPosition();
             String currentText = textArea.getText();
-
+            System.out.println("at update document and here is the state: " + "the content length is: " + content.length()
+                    + " the text area length is: " + textArea.getText().length() + " the diff is: " + diff +
+                    " the current caret position is: " + currentCaretPosition + " the current text is: " + currentText);
+            boolean isChanged = false;
             // Find if it's an insertion or deletion and where it happened
-            if (content.length() == currentText.length() + diff) {
+            if (content.length() > currentText.length()) {
                 // Insertion case - find where it was inserted
-                for (int i = 0; i < currentText.length(); i++) {
-                    if (i >= content.length() || content.charAt(i) != currentText.charAt(i)) {
+                int i = 0;
+                for (; i < currentText.length(); i++) {
+                    if (content.charAt(i) != currentText.charAt(i)) {
                         // Change is at position i
                         if (i < currentCaretPosition) {
                             // If change is before cursor, increment cursor position
                             currentCaretPosition += diff;
+                            isChanged = true;
+                            System.out.println("will increase the currentCaretPosition" + currentCaretPosition);
                         }
                         break;
                     }
                 }
-            } else if (content.length() == currentText.length() - diff) {
+                if(i == currentText.length() && !isChanged) currentCaretPosition += diff;
+            } else if (content.length() < currentText.length()) {
                 // Deletion case - find where the deletion happened
-                for (int i = 0; i < content.length(); i++) {
-                    if (i >= currentText.length() || content.charAt(i) != currentText.charAt(i)) {
+                int i = 0;
+                for (; i < content.length(); i++) {
+                    if (content.charAt(i) != currentText.charAt(i)) {
                         // Change is at position i
                         if (i < currentCaretPosition) {
                             // If deletion is before cursor, decrement cursor position
                             currentCaretPosition -= diff;
+                            isChanged = true;
+                            System.out.println("will decrease the currentCaretPosition" + currentCaretPosition);
                         }
                         break;
                     }
                 }
+                if(i == content.length() && !isChanged) currentCaretPosition -= diff;
             }
 
             isLocalChange = false;

@@ -19,34 +19,61 @@ public class CRDT {
   private HashMap<String, CharacterNode> map;
   private transient Lock writeLock = new ReentrantReadWriteLock().writeLock();
   private HashMap<String, List<CharacterNode>> waitingOn;
+  private HashMap<String, List<CharacterNode>> pasteMap; // key and its children
 
   public CRDT() {
     this.head = new CharacterNode('#', Integer.MAX_VALUE, 0);
     this.map = new HashMap<>();
     this.waitingOn = new HashMap<>();
+    pasteMap = new HashMap<String, List<CharacterNode>>();
     map.put(String.valueOf(0) + "," + Integer.MAX_VALUE, head);
   }
 
   public void handleOperations(List<Operation> operations) {
+    System.out.println("operation to handle:" + operations.toString());
     try {
       writeLock.lock();
-      if (operations.size() == 1) {
+      if (operations.get(0).getOperationType() != OperationType.PASTE) {
         handleOperation(operations.get(0));
         return;
       }
       // if we are here we know that its a paste operation
+      // we will have only one node which the parent
+      if(operations.get(0).getSecondaryType() != SecondaryType.NORMAL)
+      {
+        List<CharacterNode> targetNodes = pasteMap.get(operations.get(0).getParentId());
+        if (operations.get(0).getSecondaryType() == SecondaryType.UNDO) {
+          for (int i = 0; i < targetNodes.size(); i++) {
+            markAsDeleted(targetNodes.get(i).getID());
+          }
+          return;
+        } else if (operations.get(0).getSecondaryType() == SecondaryType.REDO) {
+          for (int i = 0; i < targetNodes.size(); i++) {
+            markAsNotDeleted(targetNodes.get(i).getID());
+          }
+          return;
+        }
+      }
 
+      // NORMAL PASTE
       // create a seperate list then simply call the insert on the root node
       CharacterNode localRoot = new CharacterNode(operations.get(0).getValue(), operations.get(0).getTime(),
           operations.get(0).getUID());
       map.put(localRoot.getID(), localRoot);
+      pasteMap.put(localRoot.getID(), new ArrayList<>()); // all the children
+      pasteMap.get(localRoot.getID()).add(localRoot);
+
+      CharacterNode tmp = localRoot;
 
       for (int i = 1; i < operations.size(); i++) {
         CharacterNode newNode = new CharacterNode(operations.get(i).getValue(), operations.get(i).getTime(),
             operations.get(i).getUID());
-        localRoot.setNext(newNode);
-        newNode.setPrev(localRoot);
+        // add to the list
+        pasteMap.get(localRoot.getID()).add(newNode);
+        tmp.setNext(newNode);
+        newNode.setPrev(tmp);
         map.put(newNode.getID(), newNode);
+        tmp = newNode;
       }
 
       insert(operations.get(0).getParentId(), localRoot);
@@ -64,17 +91,18 @@ public class CRDT {
         insert(operation.getParentId(), operation.getValue(), operation.getUID(), operation.getTime());
       } else {
         // remove
-        markAsDeleted(operation.getParentId());
+        markAsDeleted(operation.getParentId()); // here its the node id not the parent id
+        // same fl ba2e
       }
     } else if (operation.getSecondaryType() == SecondaryType.UNDO) {
       if (operation.getOperationType() == OperationType.INSERT) {
-        markAsDeleted(map.get(operation.getParentId()).getNext().getID());
+        markAsDeleted(operation.getParentId());
       } else if (operation.getOperationType() == OperationType.DELETE) {
         markAsNotDeleted(operation.getParentId());
       }
     } else { // redo
       if (operation.getOperationType() == OperationType.INSERT) {
-        markAsNotDeleted(map.get(operation.getParentId()).getNext().getID());
+        markAsNotDeleted(operation.getParentId());
       } else if (operation.getOperationType() == OperationType.DELETE) {
         markAsDeleted(operation.getParentId());
       }

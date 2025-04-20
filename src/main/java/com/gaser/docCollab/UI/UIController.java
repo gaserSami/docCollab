@@ -53,6 +53,7 @@ public class UIController {
      * @param isAddition True if character was added, false if removed
      */
     public void onCharacterChange(char character, int position, OperationType operationType) {
+        System.out.println("in character change");
         if (operationType == OperationType.DELETE)
             position++;
 
@@ -69,15 +70,13 @@ public class UIController {
     }
 
     public void onPaste(String text, int position) {
-        this.ui.getClient().incrementLamportTime();
-
         java.util.List<Operation> operations = new ArrayList<>();
 
         for (int i = 0; i < text.length(); i++) {
             this.ui.getClient().incrementLamportTime();
 
             Operation operation = new Operation(
-                    OperationType.INSERT, ui.getClient().getUID(),
+                    OperationType.PASTE, ui.getClient().getUID(),
                     this.ui.getClient().getLamportTime(),
                     text.charAt(i),
                     i == 0 ? this.ui.getClient().getCrdt().getNodeFromPosition(position + i).getID() : null);

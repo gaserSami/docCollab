@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaser.docCollab.UI.CollaborativeUI;
 import com.gaser.docCollab.server.Operation;
+import com.gaser.docCollab.server.OperationType;
 import com.gaser.docCollab.server.SecondaryType;
 import com.gaser.docCollab.websocket.Cursor;
 import com.gaser.docCollab.websocket.Message;
@@ -95,6 +96,7 @@ public class MyStompClient {
     if (operations.get(0).getUID() == getUID() && !force)
       return;
     lamportTime = Math.max(lamportTime, operations.get(operations.size() - 1).getTime()) + 1;
+    System.out.println("operations in the onSocketOperations" + operations.toString());
     getCrdt().handleOperations(operations);
     String crdtString = getCrdt().toString();
     javax.swing.SwingUtilities.invokeLater(() -> {
@@ -161,7 +163,6 @@ public class MyStompClient {
             for (Object item : rawList) {
               // Convert each LinkedHashMap to Operation
               Operation op = mapper.convertValue(item, Operation.class);
-              System.out.println("the deserialized operation : " + op.toString());
               operations.add(op);
             }
 
@@ -314,8 +315,6 @@ public class MyStompClient {
     }
 
     for (Operation operation : operations) {
-      System.out.println("the operation in send operations : " + operation.toString());
-      // Increment the lamport time for each operation sent
       Operation stackOperation = new Operation(operation.getOperationType(),
           operation.getUID(),
           operation.getTime(),
@@ -324,6 +323,9 @@ public class MyStompClient {
 
       if (operation.getSecondaryType() == SecondaryType.NORMAL) {
         stackOperation.setSecondaryType(SecondaryType.UNDO);
+        if(operation.getOperationType() != OperationType.DELETE){
+          stackOperation.setParentId(stackOperation.getID());
+        }
         undoStack.push(stackOperation);
         redoStack.clear();
       } else if (operation.getSecondaryType() == SecondaryType.UNDO) {
@@ -333,6 +335,7 @@ public class MyStompClient {
         stackOperation.setSecondaryType(SecondaryType.UNDO);
         undoStack.push(stackOperation);
       }
+      if(operation.getOperationType() == OperationType.PASTE) break; // only need the first node as its batch op
     }
 
     session.send("/app/operations/" + documentID, operations);

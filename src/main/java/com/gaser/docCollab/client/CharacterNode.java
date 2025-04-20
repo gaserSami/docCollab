@@ -74,7 +74,7 @@ public class CharacterNode {
     }
 
     public String getID() {
-        return UID + "," + String.valueOf(time);
+        return UID + "," + time;
     }
 
     public String serialize() {
