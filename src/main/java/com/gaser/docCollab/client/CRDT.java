@@ -30,7 +30,6 @@ public class CRDT {
   }
 
   public void handleOperations(List<Operation> operations) {
-    System.out.println("operation to handle:" + operations.toString());
     try {
       writeLock.lock();
       if (operations.get(0).getOperationType() != OperationType.PASTE) {
@@ -63,20 +62,24 @@ public class CRDT {
       pasteMap.put(localRoot.getID(), new ArrayList<>()); // all the children
       pasteMap.get(localRoot.getID()).add(localRoot);
 
-      CharacterNode tmp = localRoot;
+      CharacterNode tail = localRoot;
 
       for (int i = 1; i < operations.size(); i++) {
         CharacterNode newNode = new CharacterNode(operations.get(i).getValue(), operations.get(i).getTime(),
             operations.get(i).getUID());
         // add to the list
         pasteMap.get(localRoot.getID()).add(newNode);
-        tmp.setNext(newNode);
-        newNode.setPrev(tmp);
+        tail.setNext(newNode);
+        newNode.setPrev(tail);
         map.put(newNode.getID(), newNode);
-        tmp = newNode;
+        tail = newNode;
       }
 
-      insert(operations.get(0).getParentId(), localRoot);
+      CharacterNode next = insert(operations.get(0).getParentId(), localRoot, true);
+      tail.setNext(next);
+      if(next != null) {
+        next.setPrev(tail);
+      }
     } catch (Exception e) {
       System.out.println("Error handling operations: " + e.getMessage());
       e.printStackTrace();
@@ -134,7 +137,7 @@ public class CRDT {
     }
   }
 
-  private void insert(String parentID, CharacterNode newNode) {
+  private CharacterNode insert(String parentID, CharacterNode newNode, boolean isPaste) {
     CharacterNode parentNode = map.get(parentID);
     CharacterNode siblingNode = parentNode.getNext();
 
@@ -160,17 +163,23 @@ public class CRDT {
       parentNode.setNext(newNode);
       newNode.setPrev(parentNode);
       map.put(newNode.getID(), newNode);
-      return;
+      return null;
     }
 
     // normal insertion
     newNode.setPrev(parentNode);
-    newNode.setNext(parentNode.getNext());
+    if(!isPaste) newNode.setNext(siblingNode);
     parentNode.setNext(newNode);
-    if (newNode.getNext() != null) {
+    if (!isPaste && newNode.getNext() != null) {
       newNode.getNext().setPrev(newNode);
     }
     map.put(newNode.getID(), newNode);
+
+    return siblingNode;
+  }
+
+  private CharacterNode insert(String parentID, CharacterNode newNode) {
+    return insert(parentID, newNode, false);
   }
 
   public void markAsDeleted(String id) {
@@ -286,6 +295,78 @@ public class CRDT {
     crdt.head = tempMap.get(headId);
     crdt.map.putAll(tempMap);
     return crdt;
+  }
+
+  public void setPasteMapFromString(String pasteMapStr) {
+    this.pasteMap = new HashMap<>();
+    if (pasteMapStr == null || pasteMapStr.isEmpty()) {
+      return;
+    }
+    
+    String[] entries = pasteMapStr.split("\\|");
+    for (String entry : entries) {
+      String[] parts = entry.split(":");
+      if (parts.length != 2) continue;
+      
+      String key = parts[0];
+      String[] nodeStrings = parts[1].split(";");
+      List<CharacterNode> nodes = new ArrayList<>();
+      
+      for (String nodeStr : nodeStrings) {
+        String[] nodeData = nodeStr.split(",");
+        if (nodeData.length != 3) continue;
+        
+        char value = nodeData[0].charAt(0);
+        int time = Integer.parseInt(nodeData[1]);
+        int uid = Integer.parseInt(nodeData[2]);
+        
+        CharacterNode node = new CharacterNode(value, time, uid);
+        nodes.add(node);
+      }
+      
+      if (!nodes.isEmpty()) {
+        this.pasteMap.put(key, nodes);
+      }
+    }
+  }
+  
+  public String getPasteMapAsString() {
+    if (pasteMap == null || pasteMap.isEmpty()) {
+      return "";
+    }
+    
+    StringBuilder result = new StringBuilder();
+    boolean firstEntry = true;
+    
+    for (String key : pasteMap.keySet()) {
+      List<CharacterNode> nodes = pasteMap.get(key);
+      if (nodes == null || nodes.isEmpty()) continue;
+      
+      if (!firstEntry) {
+        result.append("|");
+      } else {
+        firstEntry = false;
+      }
+      
+      result.append(key).append(":");
+      
+      boolean firstNode = true;
+      for (CharacterNode node : nodes) {
+        if (!firstNode) {
+          result.append(";");
+        } else {
+          firstNode = false;
+        }
+        
+        result.append(node.getValue())
+              .append(",")
+              .append(node.getTime())
+              .append(",")
+              .append(node.getUID());
+      }
+    }
+    
+    return result.toString();
   }
 
   private static class NodeDTO {

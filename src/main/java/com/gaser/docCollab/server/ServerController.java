@@ -36,6 +36,7 @@ public class ServerController {
                 response.put("editorCode", webSocketService.getEditorCode(documentId));
             }
             response.put("crdt", webSocketService.getCRDT(documentId).serialize());
+            response.put("crdt_pasteMap", webSocketService.getCRDT(documentId).getPasteMapAsString());
             response.put("documentTitle", webSocketService.getDocument(documentId).getTitle());
         } else {
             response.put("error", "Invalid session code");

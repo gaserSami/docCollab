@@ -7,7 +7,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
-import javax.swing.text.JTextComponent;
+import java.awt.Color;
 
 import com.gaser.docCollab.server.OperationType;
 
@@ -78,16 +78,16 @@ public class MainDocumentPanel extends JPanel {
                     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
                     String pastedText = (String) clipboard.getData(DataFlavor.stringFlavor);
                     int caretPosition = textArea.getCaretPosition();
-        
+
                     // // Temporarily disable local change tracking before pasting
                     // isLocalChange = false;
-                    
+
                     // // Execute the default paste action
                     // defaultPasteAction.actionPerformed(e);
-                    
+
                     // // Re-enable local change tracking after pasting completes
                     // isLocalChange = true;
-                    
+
                     // Call onPaste function with the clipboard content and caret position
                     if (controller != null) {
                         controller.onPaste(pastedText, caretPosition);
@@ -137,7 +137,6 @@ public class MainDocumentPanel extends JPanel {
         textArea.addCaretListener(new CaretListener() {
             @Override
             public void caretUpdate(CaretEvent e) {
-                System.out.println("in Caret position listener");
                 if (isLocalChange && controller != null) {
                     controller.onCursorChange(e.getDot());
                 }
@@ -180,81 +179,43 @@ public class MainDocumentPanel extends JPanel {
 
             // Update the highlights on the EDT to avoid threading issues
             SwingUtilities.invokeLater(() -> {
-                highlightUserCursors();
+                drawCursors();
             });
         }
     }
 
-    private void highlightUserCursors() {
-        // Temporarily disabled drawing cursor highlights
-        /*
-         * if (textArea == null) return;
-         * 
-         * // Remove existing highlights
-         * for (Object highlight : userCursorHighlights.values()) {
-         * textArea.getHighlighter().removeHighlight(highlight);
-         * }
-         * userCursorHighlights.clear();
-         * 
-         * // Add new highlights for each user
-         * int index = 0;
-         * for (Integer userId : userCursorPositions.keySet()) {
-         * int position = userCursorPositions.get(userId);
-         * if (position >= 0 && position <= textArea.getText().length()) {
-         * try {
-         * // Get color for user
-         * String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(index % 4);
-         * Color color = Color.decode(colorHex);
-         * 
-         * // Create a custom painter for the cursor
-         * CursorHighlightPainter painter = new CursorHighlightPainter(color, "User " +
-         * userId);
-         * 
-         * // Add highlight at the cursor position
-         * Object highlight = textArea.getHighlighter().addHighlight(
-         * position, position + 1, painter);
-         * userCursorHighlights.put(userId, highlight);
-         * 
-         * index++;
-         * } catch (BadLocationException e) {
-         * e.printStackTrace();
-         * }
-         * }
-         * }
-         */
-    }
-
-    private class CursorHighlightPainter extends DefaultHighlighter.DefaultHighlightPainter {
-        private String username;
-
-        public CursorHighlightPainter(Color color, String username) {
-            super(color);
-            this.username = username;
-        }
-
-        @Override
-        public void paint(Graphics g, int offs0, int offs1, Shape bounds, JTextComponent c) {
-            // Temporarily disabled drawing code
-            /*
-             * try {
-             * Rectangle rect = c.modelToView(offs0);
-             * if (rect != null) {
-             * // Draw a colored vertical line for the cursor
-             * g.setColor(getColor());
-             * g.fillRect(rect.x, rect.y, 2, rect.height);
-             * 
-             * // Draw the username above the cursor
-             * g.setFont(new Font("Arial", Font.PLAIN, 10));
-             * FontMetrics fm = g.getFontMetrics();
-             * int width = fm.stringWidth(username);
-             * g.fillRect(rect.x - 2, rect.y - 15, width + 4, 14);
-             * g.setColor(Color.WHITE);
-             * g.drawString(username, rect.x, rect.y - 4);
-             * }
-             * } catch (BadLocationException e) {
-             * // ignore
-             * }
-             */
+    private void drawCursors() {
+        // Clear existing highlights
+        if (textArea != null) {
+            DefaultHighlighter highlighter = (DefaultHighlighter) textArea.getHighlighter();
+            
+            // Remove all previous cursor highlights
+            for (Object tag : userCursorHighlights.values()) {
+                highlighter.removeHighlight(tag);
+            }
+            userCursorHighlights.clear();
+            
+            // Add new highlights for each user cursor
+            for (Integer userId : userCursorPositions.keySet()) {
+                Integer position = userCursorPositions.get(userId);
+                if (position != null && position >= 0 && position <= textArea.getText().length()) {
+                    try {
+                        // Get color for this user (cycling through available colors)
+                        String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(userId % 4);
+                        Color cursorColor = Color.decode(colorHex);
+                        
+                        // Create a custom painter for vertical cursor line
+                        DefaultHighlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(cursorColor);
+                        
+                        // Add the highlight (a 1-pixel width line at the cursor position)
+                        Object tag = highlighter.addHighlight(position, position, painter);
+                        userCursorHighlights.put(userId, tag);
+                        
+                    } catch (BadLocationException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 
@@ -281,48 +242,40 @@ public class MainDocumentPanel extends JPanel {
      * 
      * @param content The new content
      */
-    public void updateDocumentContent(String content) {
+    public void updateDocumentContent(String content, boolean forced) { // forced is for the case
+        // en lw ana ele paktb
         if (textArea != null) {
             int diff = Math.abs(content.length() - textArea.getText().length());
             int currentCaretPosition = textArea.getCaretPosition();
             String currentText = textArea.getText();
-            System.out.println("at update document and here is the state: " + "the content length is: " + content.length()
-                    + " the text area length is: " + textArea.getText().length() + " the diff is: " + diff +
-                    " the current caret position is: " + currentCaretPosition + " the current text is: " + currentText);
-            boolean isChanged = false;
-            // Find if it's an insertion or deletion and where it happened
-            if (content.length() > currentText.length()) {
-                // Insertion case - find where it was inserted
-                int i = 0;
-                for (; i < currentText.length(); i++) {
-                    if (content.charAt(i) != currentText.charAt(i)) {
-                        // Change is at position i
-                        if (i < currentCaretPosition) {
-                            // If change is before cursor, increment cursor position
-                            currentCaretPosition += diff;
-                            isChanged = true;
-                            System.out.println("will increase the currentCaretPosition" + currentCaretPosition);
+            boolean isInsertion = content.length() > currentText.length();
+
+            if (diff >= 1) {
+                if (isInsertion) {
+                    int i = 0;
+                    for (; i < currentText.length(); i++) {
+                        if (content.charAt(i) != currentText.charAt(i)) {
+                            if (i < currentCaretPosition || (forced && i == currentCaretPosition)) {
+                                currentCaretPosition += diff;
+                            }
+                            break;
                         }
-                        break;
                     }
-                }
-                if(i == currentText.length() && !isChanged) currentCaretPosition += diff;
-            } else if (content.length() < currentText.length()) {
-                // Deletion case - find where the deletion happened
-                int i = 0;
-                for (; i < content.length(); i++) {
-                    if (content.charAt(i) != currentText.charAt(i)) {
-                        // Change is at position i
-                        if (i < currentCaretPosition) {
-                            // If deletion is before cursor, decrement cursor position
-                            currentCaretPosition -= diff;
-                            isChanged = true;
-                            System.out.println("will decrease the currentCaretPosition" + currentCaretPosition);
+                    if (forced && i == currentText.length() && currentCaretPosition == currentText.length())
+                        currentCaretPosition += diff;
+                } else {
+                    int i = 0;
+                    for (; i < content.length(); i++) {
+                        if (content.charAt(i) != currentText.charAt(i)) {
+                            if (i < currentCaretPosition) {
+                                currentCaretPosition -= diff;
+                            }
+                            break;
                         }
-                        break;
                     }
+                    if (i == content.length() && currentCaretPosition > content.length())
+                        currentCaretPosition = content.length();
                 }
-                if(i == content.length() && !isChanged) currentCaretPosition -= diff;
             }
 
             isLocalChange = false;

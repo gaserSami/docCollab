@@ -96,11 +96,10 @@ public class MyStompClient {
     if (operations.get(0).getUID() == getUID() && !force)
       return;
     lamportTime = Math.max(lamportTime, operations.get(operations.size() - 1).getTime()) + 1;
-    System.out.println("operations in the onSocketOperations" + operations.toString());
     getCrdt().handleOperations(operations);
     String crdtString = getCrdt().toString();
     javax.swing.SwingUtilities.invokeLater(() -> {
-      getUI().getMainPanel().updateDocumentContent(crdtString);
+      getUI().getMainPanel().updateDocumentContent(crdtString, force);
     });
   }
 
@@ -124,8 +123,6 @@ public class MyStompClient {
       return;
     activeUsers.put(cursor.getUID(), cursor.getPos());
 
-    System.out.println("in socket cursors the cursor data: " + cursor.toString());
-
     getUI().getSidebarPanel().updateActiveUsers(
         IntStream.range(0, getActiveUserIds().size())
             .mapToObj(idx -> {
@@ -147,7 +144,6 @@ public class MyStompClient {
     session.subscribe("/topic/operations/" + getDocumentID(), new StompFrameHandler() {
       @Override
       public Type getPayloadType(StompHeaders headers) {
-        System.out.println("in operations in payload type");
         return List.class;
       }
 
@@ -155,7 +151,6 @@ public class MyStompClient {
       public void handleFrame(StompHeaders headers, Object payload) {
         try {
           if (payload instanceof List) {
-            System.out.println("in operations in handle frame and the type of the payload is : " + payload.getClass());
             List<?> rawList = (List<?>) payload;
             List<Operation> operations = new ArrayList<>();
 
@@ -208,7 +203,6 @@ public class MyStompClient {
       public void handleFrame(StompHeaders headers, Object payload) {
         try {
           if (payload instanceof Cursor) {
-            System.out.println("in cursor in handle frame and the type of the payload is : ");
             Cursor cursor = (Cursor) payload;
             onSocketCursors(cursor);
           } else {
@@ -383,6 +377,7 @@ public class MyStompClient {
               }
               documentTitle = root.get("documentTitle").asText();
               crdt = CRDT.deserialize(root.get("crdt").asText());
+              crdt.setPasteMapFromString(root.get("crdt_pasteMap").asText());
               ui.getMainPanel().displayDocument(crdt.toString(), documentTitle, isReader);
 
               // set up listeners

@@ -53,7 +53,6 @@ public class UIController {
      * @param isAddition True if character was added, false if removed
      */
     public void onCharacterChange(char character, int position, OperationType operationType) {
-        System.out.println("in character change");
         if (operationType == OperationType.DELETE)
             position++;
 
