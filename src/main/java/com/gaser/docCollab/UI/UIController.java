@@ -80,7 +80,7 @@ public class UIController {
                 OperationType.INSERT, ui.getClient().getUID(),
                 this.ui.getClient().getLamportTime(),
                 text.charAt(i),
-                this.ui.getClient().getCrdt().getNodeFromPosition(position + i).getID());
+                i == 0 ? this.ui.getClient().getCrdt().getNodeFromPosition(position + i).getID() : null);
 
             operations.add(operation);
         }

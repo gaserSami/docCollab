@@ -38,15 +38,16 @@ public class CRDT {
       
       // create a seperate list then simply call the insert on the root node
       CharacterNode localRoot = new CharacterNode(operations.get(0).getValue(), operations.get(0).getTime(), operations.get(0).getUID());
-  
+      map.put(localRoot.getID(), localRoot);
+
       for(int i = 1; i < operations.size(); i++){
         CharacterNode newNode = new CharacterNode(operations.get(i).getValue(), operations.get(i).getTime(), operations.get(i).getUID());
         localRoot.setNext(newNode);
         newNode.setPrev(localRoot);
         map.put(newNode.getID(), newNode);
       }
-  
-      insert(operations.get(0).getParentId(), localRoot.getValue(), localRoot.getUID(), localRoot.getTime());
+
+      insert(operations.get(0).getParentId(), localRoot);
     } catch (Exception e) {
       System.out.println("Error handling operations: " + e.getMessage());
       e.printStackTrace();

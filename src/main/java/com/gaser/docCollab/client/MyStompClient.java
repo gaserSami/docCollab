@@ -313,8 +313,10 @@ public class MyStompClient {
     }
 
     for (Operation operation : operations) {
+      System.out.println("the operation in send operations : " + operation.toString());
+      // Increment the lamport time for each operation sent
       Operation stackOperation = new Operation(operation.getOperationType(), 
-      operation.getUID(), 
+      operation.getUID(),
       operation.getTime(), 
       operation.getValue(),
       operation.getParentId());
