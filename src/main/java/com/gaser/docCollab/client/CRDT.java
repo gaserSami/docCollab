@@ -18,10 +18,12 @@ public class CRDT {
   private CharacterNode head;
   private HashMap<String, CharacterNode> map;
   private transient Lock writeLock = new ReentrantReadWriteLock().writeLock();
+  private HashMap<String, List<CharacterNode>> waitingOn;
 
   public CRDT() {
     this.head = new CharacterNode('#', Integer.MAX_VALUE, 0);
     this.map = new HashMap<>();
+    this.waitingOn = new HashMap<>();
     map.put(String.valueOf(0) + "," + Integer.MAX_VALUE, head);
   }
 
@@ -51,8 +53,23 @@ public class CRDT {
   public void insert(String parentID, Character value, int UID, int time) {
     try {
       writeLock.lock();
+      if(!map.containsKey(parentID)) {
+        waitingOn.putIfAbsent(parentID, new ArrayList<>());
+        waitingOn.get(parentID).add(new CharacterNode(value, time, UID));
+        return;
+      }
       CharacterNode newNode = new CharacterNode(value, time, UID);
       insert(parentID, newNode);
+      // inserted so we check
+      if(waitingOn.containsKey(newNode.getID())){
+        for (CharacterNode node : waitingOn.get(newNode.getID())) {
+          insert(newNode.getID(), node.getValue(), node.getUID(), node.getTime());
+        }
+        waitingOn.remove(newNode.getID());
+      }
+    } catch (Exception e) {
+      System.out.println("Error inserting node: " + e.getMessage());
+      e.printStackTrace();
     } finally {
       writeLock.unlock();
     }
