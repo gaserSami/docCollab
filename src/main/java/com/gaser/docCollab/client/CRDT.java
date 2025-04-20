@@ -116,7 +116,6 @@ public class CRDT {
   public void markAsDeleted(String id) {
     try {
       writeLock.lock();
-      System.out.println("marking: " + id + " as deleted");
       map.get(id).setDeleted(true);
     } finally {
       writeLock.unlock();

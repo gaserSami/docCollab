@@ -10,11 +10,13 @@ import java.util.List;
 public class SidebarPanel extends JPanel {
     private JList<String> activeUsersList;
     private DefaultListModel<String> usersListModel;
+    private int UID;
 
-    public SidebarPanel() {
+    public SidebarPanel(int UID) {
+        this.UID = UID;
         setLayout(new BorderLayout());
         setBackground(new Color(230, 230, 235));
-        setPreferredSize(new Dimension(150, getHeight()));
+        setPreferredSize(new Dimension(250, getHeight()));
 
         initComponents();
     }
@@ -92,11 +94,25 @@ public class SidebarPanel extends JPanel {
 
             label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
-            if (!isSelected) {
+            String username = (String) value;
+            
+            if (username.contains("you")) {
+                // Special styling for the current user
+                label.setFont(label.getFont().deriveFont(Font.BOLD));
+                label.setForeground(new Color(50, 50, 50));
+                
+                // Add a custom border with a slight highlight
+                Border emptyBorder = BorderFactory.createEmptyBorder(5, 10, 5, 10);
+                Border lineBorder = BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200));
+                label.setBorder(BorderFactory.createCompoundBorder(lineBorder, emptyBorder));
+                
+                if (!isSelected) {
+                    label.setBackground(new Color(240, 240, 245));
+                }
+            } else if (!isSelected) {
                 label.setBackground(new Color(230, 230, 235));
                 // Use the COLORS class to set a different color for each user
-                // Use modulo to cycle through available colors if there are more users than
-                // colors
+                // Use modulo to cycle through available colors if there are more users than colors
                 String colorHex = COLORS.getColor(index % 4);
                 label.setForeground(Color.decode(colorHex));
             }

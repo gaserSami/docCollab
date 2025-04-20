@@ -13,8 +13,7 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter {
 
   @Override
   public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
-    System.out.println("Client Connected");
-
+    // do nothing
   }
 
   @Override

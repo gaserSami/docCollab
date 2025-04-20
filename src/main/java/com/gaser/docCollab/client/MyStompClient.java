@@ -99,11 +99,9 @@ public class MyStompClient {
     lamportTime = Math.max(lamportTime, operation.getTime()) + 1;
     getCrdt().handleOperation(operation);
     String crdtString = getCrdt().toString();
-    System.out.println(crdtString);
     javax.swing.SwingUtilities.invokeLater(() -> {
       getUI().getMainPanel().updateDocumentContent(crdtString);
     });
-    System.out.println("Received operation: " + operation.toString());
   }
 
   public void onSocketUsers(Message message)
@@ -112,32 +110,32 @@ public class MyStompClient {
     lamportTime = Math.max(lamportTime, message.getLamportTime());
 
     getUI().getSidebarPanel().updateActiveUsers(
-        IntStream.range(0, getActiveUserIds().size())
-            .mapToObj(idx -> {
-              Integer id = getActiveUserIds().get(idx);
-              Integer position = getCursorPositions().get(idx);
-              return "User " + id + " - " + position;
-            })
-            .collect(java.util.stream.Collectors.toList()));
+      IntStream.range(0, getActiveUserIds().size())
+          .mapToObj(idx -> {
+            Integer id = getActiveUserIds().get(idx);
+            Integer position = getCursorPositions().get(idx);
+            String userLabel = id.equals(getUID()) ? "User " + id + " (you)" : "User " + id;
+            return userLabel + " • Position: " + position;
+          })
+          .collect(java.util.stream.Collectors.toList()));
   }
 
   public void onSocketCursors(Cursor cursor){
     onUserCursorChange(cursor);
 
     getUI().getSidebarPanel().updateActiveUsers(
-        IntStream.range(0, getActiveUserIds().size())
-            .mapToObj(idx -> {
-              Integer id = getActiveUserIds().get(idx);
-              Integer position = getCursorPositions().get(idx);
-              return "User " + id + " - " + position;
-            })
-            .collect(java.util.stream.Collectors.toList()));
-    System.out.println("Received cursor: " + cursor.toString());
+      IntStream.range(0, getActiveUserIds().size())
+          .mapToObj(idx -> {
+            Integer id = getActiveUserIds().get(idx);
+            Integer position = getCursorPositions().get(idx);
+            String userLabel = id.equals(getUID()) ? "User " + id + " (you)" : "User " + id;
+            return userLabel + " • Position: " + position;
+          })
+          .collect(java.util.stream.Collectors.toList()));
   }
 
   private void listen() {
     String tmp = "/topic/operations/" + getDocumentID();
-    System.out.println(tmp);
 
     session.subscribe("/topic/operations/" + getDocumentID(), new StompFrameHandler() {
       @Override
@@ -147,7 +145,6 @@ public class MyStompClient {
 
       @Override
       public void handleFrame(StompHeaders headers, Object payload) {
-        System.out.println("received at /topic/operations/" + getDocumentID());
         try {
           if (payload instanceof Operation) {
             Operation operation = (Operation) payload;
@@ -160,7 +157,6 @@ public class MyStompClient {
         }
       }
     });
-    System.out.println("Client Subscribe to /topic/operations/" + getDocumentID());
 
     /////////////////
     session.subscribe("/topic/users/" + getDocumentID(), new StompFrameHandler() {
@@ -172,7 +168,6 @@ public class MyStompClient {
       @Override
       public void handleFrame(StompHeaders headers, Object payload) {
         try {
-          System.out.println("received at /topic/" + getDocumentID() + "/users");
           if (payload instanceof Message) {
             Message message = (Message) payload;
             onSocketUsers(message);
@@ -184,8 +179,6 @@ public class MyStompClient {
         }
       }
     });
-    System.out.println("Client Subscribe to /topic/users/" + getDocumentID());
-    ///////////////////
 
     session.subscribe("/topic/cursors/" + getDocumentID(), new StompFrameHandler() {
       @Override
@@ -195,7 +188,6 @@ public class MyStompClient {
 
       @Override
       public void handleFrame(StompHeaders headers, Object payload) {
-        System.out.println("received at /topic/" + getDocumentID() + "/cursors");
         try {
           if (payload instanceof Cursor) {
             Cursor cursor = (Cursor) payload;
@@ -208,8 +200,6 @@ public class MyStompClient {
         }
       }
     });
-    System.out.println("Client Subscribe to /topic/cursors/" + getDocumentID());
-    /////////////////////////
   }
 
   public void connectToWebSocket() {
@@ -248,8 +238,6 @@ public class MyStompClient {
         
         // Then disconnect the session
         session.disconnect();
-
-        System.out.println("Disconnected from WebSocket for document: " + tmp);
 
         // Clear session reference
         session = null;
@@ -322,7 +310,6 @@ public class MyStompClient {
         undoStack.push(stackOperation);
       }
       session.send("/app/operations/" + documentID, operation);
-      System.out.println("Client Sent Operation to /app/operations/" + documentID + " : " + operation.toString());
     } else {
       System.out.println("Session is not connected. Cannot send operation.");
     }
@@ -331,7 +318,6 @@ public class MyStompClient {
   public void sendCursor(Cursor cursor) {
     if (session != null && session.isConnected()) {
       session.send("/app/cursors/" + documentID, cursor);
-      System.out.println("Client Sent Cursor to /app/cursors/" + documentID + " : " + cursor.toString());
     } else {
       System.out.println("Session is not connected. Cannot send cursor.");
     }
@@ -371,8 +357,6 @@ public class MyStompClient {
                         }
                         documentTitle = root.get("documentTitle").asText();
                         crdt = CRDT.deserialize(root.get("crdt").asText());
-                        System.out.println("Joining document with ID: " + this.documentID);
-                        System.out.println("is Reader: " + isReader);
                         ui.getMainPanel().displayDocument(crdt.toString(), documentTitle, isReader);
                         
                         // set up listeners
@@ -380,7 +364,6 @@ public class MyStompClient {
                         
                         Message message = new Message(UID, "join");
                         session.send("/app/join/" + sessionCode, message);
-                        System.out.println("Client sent join message to /app/join/" + sessionCode);
                     } else {
                         System.out.println("Error: " + root.get("error").asText());
                         // use the ui to show the error message
@@ -403,7 +386,6 @@ public class MyStompClient {
     if (session != null && session.isConnected()) {
       Message message = new Message(UID, "leave");
       session.send("/app/leave/" + documentID, message);
-      System.out.println("Client Sent Leave to /app/users/" + documentID);
     } else {
       System.out.println("Session is not connected. Cannot leave document.");
     }
@@ -465,7 +447,6 @@ public class MyStompClient {
                 // this.codes.put("readonlyCode", response.get("readonlyCode"));
                 // this.codes.put("editorCode", response.get("editorCode"));
                 
-                System.out.println("Document created successfully with ID: " + this.documentID);
             }
         } else {
             System.out.println("Failed to create document. Response code: " + responseCode);
@@ -492,8 +473,6 @@ public class MyStompClient {
   }
 
   public Operation getUndoLastOperation() {
-    System.out.println("state of the undo stack before talking the last operation: ");
-    System.out.println(undoStack.toString());
     if (!undoStack.isEmpty()) {
       return undoStack.pop();
     } else {
@@ -503,8 +482,6 @@ public class MyStompClient {
   }
 
   public Operation getRedoLastOperation() {
-    System.out.println("state of the redo stack before talking the last operation: ");
-    System.out.println(redoStack.toString());
     if (!redoStack.isEmpty()) {
       return redoStack.pop();
     } else {

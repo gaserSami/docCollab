@@ -25,7 +25,6 @@ public class UIController {
      * Handles the join button click event
      */
     public void handleJoinButtonClick() {
-        System.out.println("Join button clicked");
         this.ui.getClient().disconnectFromWebSocket();
 
         // ui.getClient().setDocumentID(res.get("docID"));
@@ -53,8 +52,6 @@ public class UIController {
      * @param isAddition True if character was added, false if removed
      */
     public void onCharacterChange(char character, int position, OperationType operationType) {
-        System.out.println("charcter changed: " + character + " at position: " + position);
-        System.out.println("updated");
         if (operationType == OperationType.DELETE)
         position++;
         
@@ -71,7 +68,6 @@ public class UIController {
     }
 
     public void onCursorChange(int position) {
-        System.out.println("cursor changed: " + position);
         this.ui.getClient().sendCursor(new Cursor(
                 ui.getClient().getUID(),
                 position));
@@ -81,8 +77,6 @@ public class UIController {
      * Handles the share button click event
      */
     public void handleShareButtonClick() {
-        System.out.println("Share button clicked");
-
         // Create a custom dialog for sharing options
         JDialog shareDialog = new JDialog(ui, "Share Document", true);
         shareDialog.setLayout(new BorderLayout());
@@ -237,7 +231,6 @@ public class UIController {
         handleJoin(res.get("editorCode"));
         
         // ui.getMainPanel().displayDocument("", documentName);
-        System.out.println("New document created: " + documentName + " with ID: " + res.get("docID"));
     }
 
     public void showErrorMessage(String message) {
@@ -316,11 +309,8 @@ private void handleImportOption() {
             handleJoin(res.get("editorCode"));
             
             // ui.getClient().getCrdt().fromString(content.toString());
-            // System.out.println("after using from string on the crdt : " + ui.getClient().getCrdt().toString());
             // Display the document with the imported content and filename
             // ui.getMainPanel().displayDocument(ui.getClient().getCrdt().toString(), selectedFile.getName());
-            System.out.println("File imported: " + selectedFile.getName() + " with ID: " + res.get("docID"));
-
         } catch (FileNotFoundException e) {
             JOptionPane.showMessageDialog(ui,
                     "Could not open the file: " + e.getMessage(),
@@ -420,7 +410,6 @@ private void handleImportOption() {
             try (PrintWriter writer = new PrintWriter(selectedFile)) {
                 // Write content exactly as it appears in the text area
                 writer.print(content);
-                System.out.println("File exported: " + selectedFile.getName());
 
                 JOptionPane.showMessageDialog(ui,
                         "Document successfully exported to:\n" + selectedFile.getAbsolutePath(),
@@ -453,8 +442,6 @@ private void handleImportOption() {
 
         this.ui.getClient().sendOperation(operationToUndo);
         this.ui.getClient().onSocketOperation(operationToUndo, true); // local updates
-
-        System.out.println("after undo");
     }
 
     public void handleRedoButtonClick() {
@@ -475,7 +462,5 @@ private void handleImportOption() {
 
         this.ui.getClient().sendOperation(operationToRedo);
         this.ui.getClient().onSocketOperation(operationToRedo, true); // local updates
-
-        System.out.println("after redo");
     }
 }

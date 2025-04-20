@@ -239,14 +239,45 @@ public class MainDocumentPanel extends JPanel {
      */
     public void updateDocumentContent(String content) {
         if (textArea != null) {
+            int diff = content.length() - textArea.getText().length();
             int currentCaretPosition = textArea.getCaretPosition();
+            String currentText = textArea.getText();
+            
+            // Find if it's an insertion or deletion and where it happened
+            if (content.length() == currentText.length() + diff) {
+                // Insertion case - find where it was inserted
+                for (int i = 0; i < currentText.length(); i++) {
+                    if (i >= content.length() || content.charAt(i) != currentText.charAt(i)) {
+                        // Change is at position i
+                        if (i < currentCaretPosition) {
+                            // If change is before cursor, increment cursor position
+                            currentCaretPosition+= diff;
+                        }
+                        break;
+                    }
+                }
+            } else if (content.length() == currentText.length() - diff) {
+                // Deletion case - find where the deletion happened
+                for (int i = 0; i < content.length(); i++) {
+                    if (i >= currentText.length() || content.charAt(i) != currentText.charAt(i)) {
+                        // Change is at position i
+                        if (i < currentCaretPosition) {
+                            // If deletion is before cursor, decrement cursor position
+                            currentCaretPosition-= diff;
+                        }
+                        break;
+                    }
+                }
+            }
+            
             isLocalChange = false;
             textArea.setText(content);
-            textArea.setCaretPosition(Math.min(currentCaretPosition, content.length()));
-            // controller.onCursorChange(currentCaretPosition);
+            // Make sure the adjusted caret position is valid
+            textArea.setCaretPosition(Math.min(Math.max(0, currentCaretPosition), content.length()));
             isLocalChange = true;
         }
     }
+
     /**
      * Updates document at specific position (for collaborative editing)
      * 

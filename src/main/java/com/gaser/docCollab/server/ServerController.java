@@ -30,10 +30,8 @@ public class ServerController {
       if (documentId != null) {
           response.put("documentId", documentId);
           boolean isReadCode = webSocketService.isReadCode(sessionCode);
-          System.out.println("isReadCode: " + isReadCode);
           response.put("readonlycode", webSocketService.getReadOnlyCode(documentId));
           if(!isReadCode) {
-            System.out.println("sending editorCode: ");
               response.put("editorCode", webSocketService.getEditorCode(documentId));
           }
           response.put("crdt", webSocketService.getCRDT(documentId).serialize());

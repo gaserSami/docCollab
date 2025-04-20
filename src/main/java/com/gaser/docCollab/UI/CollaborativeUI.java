@@ -12,8 +12,10 @@ public class CollaborativeUI extends JFrame {
     private TopBarPanel topBarPanel;
     private UIController controller;
     private MyStompClient client;
+    private int UID;
 
-    public CollaborativeUI() {
+    public CollaborativeUI(int UID) {
+        this.UID = UID;
         setTitle("Collaborative Tool");
         setSize(1366, 768);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -33,7 +35,7 @@ public class CollaborativeUI extends JFrame {
 
     private void initComponents() {
         // Create modular components
-        sidebarPanel = new SidebarPanel();
+        sidebarPanel = new SidebarPanel(UID);
         mainPanel = new MainDocumentPanel(controller);
         topBarPanel = new TopBarPanel(controller);
     }
@@ -82,8 +84,9 @@ public class CollaborativeUI extends JFrame {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            CollaborativeUI ui = new CollaborativeUI();
-            MyStompClient client = new MyStompClient(new Random().nextInt(1000), ui);
+            int id = new Random().nextInt(1000);
+            CollaborativeUI ui = new CollaborativeUI(id);
+            MyStompClient client = new MyStompClient(id, ui);
             ui.setClient(client);
         });
     }

@@ -71,8 +71,6 @@ public class WebSocketService {
 
   public void handleOperation(String docId, Operation operation) {
     documents.get(docId).getCrdt().handleOperation(operation);
-    System.out.println("server handled operation on document: " + docId + " operation: " + operation.toString());
-    System.out.println("server crdt current state: " + documents.get(docId).getCrdt().toString());
   }
 
   public void handleCursorUpdate(String docId, Cursor cursor) {
