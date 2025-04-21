@@ -12,6 +12,7 @@ public class TopBarPanel extends JPanel {
     private JButton fileButton;
     private JButton undoButton;
     private JButton redoButton;
+    private JButton disconnectButton;
     private UIController controller;
 
     public TopBarPanel(UIController controller) {
@@ -27,6 +28,7 @@ public class TopBarPanel extends JPanel {
         // Configurable colors
         Color buttonBlue = new Color(60, 120, 255);
         Color buttonTextColor = Color.WHITE;
+        Color disconnectRed = new Color(220, 60, 60);
 
         fileButton = new JButton("File");
         styleButton(fileButton, buttonBlue, buttonTextColor);
@@ -43,12 +45,16 @@ public class TopBarPanel extends JPanel {
         shareButton = new JButton("Share");
         styleButton(shareButton, buttonBlue, buttonTextColor);
 
+        disconnectButton = new JButton("Disconnect");
+        styleButton(disconnectButton, disconnectRed, buttonTextColor);
+
         // Set listeners
         fileButton.addActionListener(e -> controller.handleFileButtonClick());
         undoButton.addActionListener(e -> controller.handleUndoButtonClick());
         redoButton.addActionListener(e -> controller.handleRedoButtonClick());
         joinButton.addActionListener(e -> controller.handleJoinButtonClick());
         shareButton.addActionListener(e -> controller.handleShareButtonClick());
+        disconnectButton.addActionListener(e -> controller.handleDisconnectButtonClick());
     }
 
     private void layoutComponents() {
@@ -65,6 +71,8 @@ public class TopBarPanel extends JPanel {
         sessionPanel.setOpaque(false);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.add(disconnectButton);
+        actionPanel.add(Box.createHorizontalStrut(10));
         actionPanel.add(shareButton);
         actionPanel.setOpaque(false);
 
@@ -143,5 +151,27 @@ public class TopBarPanel extends JPanel {
      */
     public JButton getRedoButton() {
         return redoButton;
+    }
+
+    public JButton getDisconnectButton() {
+        return disconnectButton;
+    }
+
+    public void markDisconnected() {
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null) {
+            String currentTitle = frame.getTitle();
+            if (!currentTitle.contains("(Disconnected)")) {
+                frame.setTitle(currentTitle + " (Disconnected)");
+            }
+        }
+    }
+
+    public void clearDisconnectedMark() {
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null) {
+            String currentTitle = frame.getTitle();
+            frame.setTitle(currentTitle.replace(" (Disconnected)", ""));
+        }
     }
 }

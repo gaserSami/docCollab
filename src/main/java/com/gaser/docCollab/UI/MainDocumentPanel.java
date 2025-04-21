@@ -7,7 +7,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
-import java.awt.Color;
 
 import com.gaser.docCollab.server.OperationType;
 
@@ -160,6 +159,29 @@ public class MainDocumentPanel extends JPanel {
 
         revalidate();
         repaint();
+    }
+
+    public void removeDocument() {
+        if (textArea != null) {
+            // Clear cursor highlights
+            DefaultHighlighter highlighter = (DefaultHighlighter) textArea.getHighlighter();
+            for (Object tag : userCursorHighlights.values()) {
+                highlighter.removeHighlight(tag);
+            }
+            userCursorHighlights.clear();
+            userCursorPositions.clear();
+            
+            // Remove all components from the panel
+            removeAll();
+            
+            // Reset text area reference
+            textArea = null;
+            currentFileName = "Untitled.txt";
+            
+            // Refresh the UI
+            revalidate();
+            repaint();
+        }
     }
 
     /**

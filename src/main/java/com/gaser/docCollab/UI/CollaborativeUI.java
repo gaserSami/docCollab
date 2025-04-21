@@ -87,6 +87,10 @@ public class CollaborativeUI extends JFrame {
         return topBarPanel;
     }
 
+    public UIController getController() {
+        return controller;
+    }
+
     // Delegate methods
     public void updateSessionCode(String code) {
         topBarPanel.updateSessionCode(code);
@@ -102,6 +106,10 @@ public class CollaborativeUI extends JFrame {
 
     public void showErrorMessage(String message) {
         controller.showErrorMessage(message);
+    }
+
+    public void showMessage(String message) {
+        controller.showMessage(message);
     }
 
     public static void main(String[] args) {

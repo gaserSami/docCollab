@@ -37,6 +37,7 @@ import java.net.URL;
 
 public class MyStompClient {
   private StompSession session;
+  private boolean reconnecting = false;
   private int UID;
   private String documentID = null;
   private String documentTitle = "null";
@@ -48,6 +49,8 @@ public class MyStompClient {
   private int lamportTime = 0;
   private Stack<Operation> undoStack = new Stack<>();
   private Stack<Operation> redoStack = new Stack<>();
+  private String sessionCode = "";
+  List<List<Operation>> bufferedOperations = new ArrayList<>();
 
   public MyStompClient(int UID, CollaborativeUI ui) {
     this.UID = UID;
@@ -215,7 +218,7 @@ public class MyStompClient {
     });
   }
 
-  public void connectToWebSocket() {
+  public boolean connectToWebSocket() {
     try {
       List<Transport> transports = Collections.singletonList(new WebSocketTransport(new StandardWebSocketClient()));
       SockJsClient sockJsClient = new SockJsClient(transports);
@@ -227,10 +230,11 @@ public class MyStompClient {
       String url = "ws://localhost:8080/ws";
 
       session = stompClient.connectAsync(url, sessionHandler).get();
-
+      return true;
     } catch (Exception e) {
       System.out.println("Error connecting to WebSocket: " + e.getMessage());
       e.printStackTrace();
+      return false;
     }
   }
 
@@ -248,6 +252,7 @@ public class MyStompClient {
           isReader = false;
           undoStack.clear();
           redoStack.clear();
+          sessionCode = "";
         }
 
         // Then disconnect the session
@@ -264,6 +269,110 @@ public class MyStompClient {
       }
     }
   }
+
+  public void handleUnexpectedDisconnect() {
+    // The session is already disconnected at this point
+    System.out.println("Handling unexpected disconnection");
+    
+    // Update UI to show disconnection status
+    // javax.swing.SwingUtilities.invokeLater(() -> {
+    //     ui.showErrorMessage("Connection to server lost. Please reconnect.");
+    // });
+    
+    attemptReconnection();
+  }
+
+  private void attemptReconnection() {
+    if (reconnecting) {
+        System.out.println("Already attempting to reconnect. Please wait.");
+        return;
+    }
+    reconnecting = true;
+    ui.getTopBarPanel().markDisconnected();
+    new Thread(() -> {
+        int attempts = 0;
+        final int maxAttempts = 10;
+        boolean reconnected = false;
+        
+        while (attempts < maxAttempts && !reconnected) {
+            System.out.println("Attempting to reconnect... (Attempt " + (attempts + 1) + ")");
+            try {
+                Thread.sleep(5000);
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                  ui.getController().showBlockingDialogBox("Reconnecting... Please wait.");
+                });
+
+                if(!connectToWebSocket()){
+                  javax.swing.SwingUtilities.invokeLater(() -> {
+                    ui.getController().closeBlockingDialogBox();
+                    ui.showErrorMessage("Failed to connect to WebSocket.");
+                  });
+                  throw new Exception("Failed to connect to WebSocket.");
+                }
+                // connected with socket
+                if (session != null && session.isConnected()) {
+                  if(!joinDocument(sessionCode)){
+                      System.out.println("Failed to join document after reconnection.");
+                      javax.swing.SwingUtilities.invokeLater(() -> {
+                        ui.getController().closeBlockingDialogBox();
+                        ui.showErrorMessage("Failed to join document after reconnection.");
+                      });
+                      break;
+                  }
+                    
+                  reconnected = true;
+
+                  for (int i = 0; i < bufferedOperations.size(); i++) {
+                      sendOperations(bufferedOperations.get(i), true);
+                      onSocketOperations(bufferedOperations.get(i), true);
+                  }
+                  bufferedOperations.clear();
+              
+                  // Notify the UI that all operations have been sent
+                  javax.swing.SwingUtilities.invokeLater(() -> {
+                      ui.getController().closeBlockingDialogBox();
+                      ui.showMessage("Reconnected successfully!");
+                      ui.getTopBarPanel().clearDisconnectedMark();
+                      ui.getSidebarPanel().updateActiveUsers(Collections.emptyList());
+                  });
+                }
+            } catch (Exception e) {
+                System.out.println("Reconnection attempt failed: " + e.getMessage());
+            }
+            attempts++;
+        }
+        
+        if (!reconnected) {
+            // Final notification after all attempts fail
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                ui.showErrorMessage("Could not reconnect after " + maxAttempts + " attempts");
+            });
+            ui.getMainPanel().removeDocument();
+            this.documentID = null;
+            this.codes = new HashMap<>();
+            crdt = new CRDT();
+            documentTitle = "null";
+            isReader = false;
+            undoStack.clear();
+            redoStack.clear();
+            sessionCode = "";
+        }
+        reconnecting = false;
+    }).start();
+  }
+
+  public void sessionDisconnect() {
+    if (session != null && session.isConnected()) {
+      session.disconnect();
+    }
+  }
+
+  public void simulateUnexpectedDisconnect() {
+    if (session != null && session.isConnected()) {
+        session.disconnect();
+        handleUnexpectedDisconnect();
+    }
+}
 
   // setters and getters
   public void setUID(int UID) {
@@ -303,33 +412,40 @@ public class MyStompClient {
   }
 
   public void sendOperations(List<Operation> operations) {
-    if (session == null || !session.isConnected()) {
-      System.out.println("Session is not connected. Cannot send operations.");
-      return;
+    sendOperations(operations, false);
+  }
+
+  public void sendOperations(List<Operation> operations, boolean noFollowers) {
+
+    if(!noFollowers){
+      for (Operation operation : operations) {
+        Operation stackOperation = new Operation(operation.getOperationType(),
+            operation.getUID(),
+            operation.getTime(),
+            operation.getValue(),
+            operation.getParentId());
+  
+        if (operation.getSecondaryType() == SecondaryType.NORMAL) {
+          stackOperation.setSecondaryType(SecondaryType.UNDO);
+          if(operation.getOperationType() != OperationType.DELETE){
+            stackOperation.setParentId(stackOperation.getID());
+          }
+          undoStack.push(stackOperation);
+          redoStack.clear();
+        } else if (operation.getSecondaryType() == SecondaryType.UNDO) {
+          stackOperation.setSecondaryType(SecondaryType.REDO);
+          redoStack.push(stackOperation);
+        } else if (operation.getSecondaryType() == SecondaryType.REDO) {
+          stackOperation.setSecondaryType(SecondaryType.UNDO);
+          undoStack.push(stackOperation);
+        }
+        if(operation.getOperationType() == OperationType.PASTE) break; // only need the first node as its batch op
+      }
     }
 
-    for (Operation operation : operations) {
-      Operation stackOperation = new Operation(operation.getOperationType(),
-          operation.getUID(),
-          operation.getTime(),
-          operation.getValue(),
-          operation.getParentId());
-
-      if (operation.getSecondaryType() == SecondaryType.NORMAL) {
-        stackOperation.setSecondaryType(SecondaryType.UNDO);
-        if(operation.getOperationType() != OperationType.DELETE){
-          stackOperation.setParentId(stackOperation.getID());
-        }
-        undoStack.push(stackOperation);
-        redoStack.clear();
-      } else if (operation.getSecondaryType() == SecondaryType.UNDO) {
-        stackOperation.setSecondaryType(SecondaryType.REDO);
-        redoStack.push(stackOperation);
-      } else if (operation.getSecondaryType() == SecondaryType.REDO) {
-        stackOperation.setSecondaryType(SecondaryType.UNDO);
-        undoStack.push(stackOperation);
-      }
-      if(operation.getOperationType() == OperationType.PASTE) break; // only need the first node as its batch op
+    if (session == null || !session.isConnected()) {
+      bufferedOperations.add(operations);
+      return;
     }
 
     session.send("/app/operations/" + documentID, operations);
@@ -343,7 +459,7 @@ public class MyStompClient {
     }
   }
 
-  public void joinDocument(String sessionCode) {
+  public boolean joinDocument(String sessionCode) {
     if (session != null && session.isConnected()) {
       try {
         // Send a request to get the documentID using the sessionCode
@@ -379,27 +495,33 @@ public class MyStompClient {
               crdt = CRDT.deserialize(root.get("crdt").asText());
               crdt.setPasteMapFromString(root.get("crdt_pasteMap").asText());
               ui.getMainPanel().displayDocument(crdt.toString(), documentTitle, isReader);
+              this.sessionCode = sessionCode; 
               
               // set up listeners
               listen();
 
               Message message = new Message(UID, "join");
               session.send("/app/join/" + sessionCode, message);
+              return true;
             } else {
               System.out.println("Error: " + root.get("error").asText());
               // use the ui to show the error message
               ui.showErrorMessage("no document found with this session code");
+              return false;
             }
           }
         } else {
           System.out.println("Failed to get document ID. Response code: " + responseCode);
+          return false;
         }
       } catch (Exception e) {
         System.out.println("Error joining document: " + e.getMessage());
         e.printStackTrace();
+        return false;
       }
     } else {
       System.out.println("Session is not connected. Cannot join document.");
+      return false;
     }
   }
 

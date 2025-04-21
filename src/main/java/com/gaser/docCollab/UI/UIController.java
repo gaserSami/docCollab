@@ -17,6 +17,7 @@ import java.awt.*;
 
 public class UIController {
     private CollaborativeUI ui;
+    private JDialog blockingDialog;
 
     public UIController(CollaborativeUI ui) {
         this.ui = ui;
@@ -107,35 +108,35 @@ public class UIController {
     /**
      * Handles the share button click event
      */
-    public void handleShareButtonClick() {
+        public void handleShareButtonClick() {
         // Create a custom dialog for sharing options
         JDialog shareDialog = new JDialog(ui, "Share Document", true);
         shareDialog.setLayout(new BorderLayout());
         shareDialog.setSize(400, 300);
         shareDialog.setLocationRelativeTo(ui);
-
+    
         // Create a panel for the sharing options with a title
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
+    
         JLabel titleLabel = new JLabel("Share Access Codes");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
         contentPanel.add(titleLabel, BorderLayout.NORTH);
-
+    
         // Create a panel for the access codes list
         JPanel codesPanel = new JPanel();
         codesPanel.setLayout(new BoxLayout(codesPanel, BoxLayout.Y_AXIS));
         codesPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-
+    
         // Add sharing options - Editor access
         JPanel editorPanel = new JPanel(new BorderLayout());
         editorPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 5, 10, 5)));
-
+    
         JLabel editorLabel = new JLabel("Editor");
         editorLabel.setFont(new Font("Arial", Font.BOLD, 14));
-
+    
         // Generate a mock editor code (would be dynamic in a real implementation)
         String editorCode = ui.getClient().codes.get("editorCode");
         if (editorCode == null) {
@@ -145,19 +146,32 @@ public class UIController {
         editorCodeField.setEditable(false);
         editorCodeField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         editorCodeField.setBackground(new Color(240, 240, 240));
-
+    
+        // Create a panel for the editor code field and copy button
+        JPanel editorCodePanel = new JPanel(new BorderLayout(5, 0));
+        editorCodePanel.add(editorCodeField, BorderLayout.CENTER);
+        
+        // Add copy button for editor code
+        JButton copyEditorButton = new JButton("Copy");
+        copyEditorButton.addActionListener(e -> {
+            editorCodeField.selectAll();
+            editorCodeField.copy();
+            shareDialog.dispose();
+        });
+        editorCodePanel.add(copyEditorButton, BorderLayout.EAST);
+    
         editorPanel.add(editorLabel, BorderLayout.NORTH);
-        editorPanel.add(editorCodeField, BorderLayout.CENTER);
-
+        editorPanel.add(editorCodePanel, BorderLayout.CENTER);
+    
         // Add sharing options - Read-Only access
         JPanel readOnlyPanel = new JPanel(new BorderLayout());
         readOnlyPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(10, 5, 10, 5)));
-
+    
         JLabel readOnlyLabel = new JLabel("Read-Only");
         readOnlyLabel.setFont(new Font("Arial", Font.BOLD, 14));
-
+    
         // Generate a mock read-only code
         String readOnlyCode = ui.getClient().codes.get("readonlyCode");
         if (readOnlyCode == null) {
@@ -167,33 +181,46 @@ public class UIController {
         readOnlyCodeField.setEditable(false);
         readOnlyCodeField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         readOnlyCodeField.setBackground(new Color(240, 240, 240));
-
+    
+        // Create a panel for the read-only code field and copy button
+        JPanel readOnlyCodePanel = new JPanel(new BorderLayout(5, 0));
+        readOnlyCodePanel.add(readOnlyCodeField, BorderLayout.CENTER);
+        
+        // Add copy button for read-only code
+        JButton copyReadOnlyButton = new JButton("Copy");
+        copyReadOnlyButton.addActionListener(e -> {
+            readOnlyCodeField.selectAll();
+            readOnlyCodeField.copy();
+            shareDialog.dispose();
+        });
+        readOnlyCodePanel.add(copyReadOnlyButton, BorderLayout.EAST);
+    
         readOnlyPanel.add(readOnlyLabel, BorderLayout.NORTH);
-        readOnlyPanel.add(readOnlyCodeField, BorderLayout.CENTER);
-
+        readOnlyPanel.add(readOnlyCodePanel, BorderLayout.CENTER);
+    
         // Add panels to the codes panel
         codesPanel.add(editorPanel);
         codesPanel.add(readOnlyPanel);
-
+    
         // Add information text
         JLabel infoLabel = new JLabel("Share these codes with others to collaborate on this document.");
         infoLabel.setBorder(BorderFactory.createEmptyBorder(15, 5, 0, 5));
         infoLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-
+    
         // Add the components to the content panel
         contentPanel.add(codesPanel, BorderLayout.CENTER);
         contentPanel.add(infoLabel, BorderLayout.SOUTH);
-
+    
         // Add a close button at the bottom
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton closeButton = new JButton("Close");
         closeButton.addActionListener(e -> shareDialog.dispose());
         buttonPanel.add(closeButton);
-
+    
         // Add panels to the dialog
         shareDialog.add(contentPanel, BorderLayout.CENTER);
         shareDialog.add(buttonPanel, BorderLayout.SOUTH);
-
+    
         // Show the dialog
         shareDialog.setVisible(true);
     }
@@ -213,6 +240,20 @@ public class UIController {
         }
 
         return code.toString();
+    }
+
+    public void handleDisconnectButtonClick() {
+        // Disconnect from the WebSocket
+        System.out.println("simulateUnexpectedDisconnect");
+        ui.getClient().simulateUnexpectedDisconnect();
+        
+        // Clear the document display
+        // ui.getMainPanel().clearDocument();
+        
+        // Reset the session code field
+        // ui.getTopBarPanel().updateSessionCode("");
+        
+        // Show a message to the user
     }
 
     /**
@@ -266,6 +307,30 @@ public class UIController {
 
     public void showErrorMessage(String message) {
         JOptionPane.showMessageDialog(ui, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public void showMessage(String message) {
+        JOptionPane.showMessageDialog(ui, message, "Message", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public void showBlockingDialogBox(String message) {
+        blockingDialog = new JDialog(ui, "Blocking Dialog", true);
+        blockingDialog.setLayout(new BorderLayout());
+        blockingDialog.setSize(300, 150);
+        blockingDialog.setLocationRelativeTo(ui);
+    
+        JLabel messageLabel = new JLabel(message, SwingConstants.CENTER);
+        messageLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        blockingDialog.add(messageLabel, BorderLayout.CENTER);
+    
+        blockingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE); // Prevent closing
+        blockingDialog.setVisible(true);
+    }
+    
+    public void closeBlockingDialogBox() {
+        if (blockingDialog != null && blockingDialog.isVisible()) {
+            blockingDialog.dispose();
+        }
     }
 
     /**

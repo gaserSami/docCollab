@@ -18,6 +18,13 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter {
 
   @Override
   public void handleTransportError(StompSession session, Throwable exception) {
+    System.out.println("Transport error occurred: " + exception.getMessage());
     exception.printStackTrace();
+
+    if (!session.isConnected()) {
+      System.out.println("Session disconnected unexpectedly");
+      
+      stompClient.handleUnexpectedDisconnect();
+    }
   }
 }
