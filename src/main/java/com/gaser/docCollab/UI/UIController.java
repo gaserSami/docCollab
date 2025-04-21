@@ -49,6 +49,7 @@ public class UIController {
     }
 
     public void handleJoin(String sessionCode) {
+        ui.getClient().connectToWebSocket();
         ui.getClient().joinDocument(sessionCode);
     }
 

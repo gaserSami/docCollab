@@ -5,8 +5,8 @@ import java.awt.*;
 import java.util.*;
 
 import com.gaser.docCollab.client.MyStompClient;
-import java.swt.even.WindowAdapter;
-import java.swt.even.WindowEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class CollaborativeUI extends JFrame {
     private SidebarPanel sidebarPanel;
