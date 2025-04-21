@@ -5,6 +5,8 @@ import java.awt.*;
 import java.util.*;
 
 import com.gaser.docCollab.client.MyStompClient;
+import java.swt.even.WindowAdapter;
+import java.swt.even.WindowEvent;
 
 public class CollaborativeUI extends JFrame {
     private SidebarPanel sidebarPanel;
@@ -18,7 +20,14 @@ public class CollaborativeUI extends JFrame {
         this.UID = UID;
         setTitle("Collaborative Tool" + " - UID: " + UID);
         setSize(1366, 768);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                // Add custom behavior here
+                handleApplicationClose();
+            }
+        });
         setLayout(new BorderLayout());
 
         // Create controller
@@ -31,6 +40,24 @@ public class CollaborativeUI extends JFrame {
         layoutComponents();
 
         setVisible(true);
+    }
+
+    private void handleApplicationClose() {
+        int option = JOptionPane.showConfirmDialog(
+            this,
+            "Are you sure you want to exit? Any unsaved changes will be lost.",
+            "Confirm Exit",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (option == JOptionPane.YES_OPTION) {
+            // Perform cleanup
+            controller.getUI().getClient().disconnectFromWebSocket();
+            // Exit the application
+            dispose();
+            System.exit(0);
+        }
     }
 
     private void initComponents() {

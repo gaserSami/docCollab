@@ -379,7 +379,8 @@ public class MyStompClient {
               crdt = CRDT.deserialize(root.get("crdt").asText());
               crdt.setPasteMapFromString(root.get("crdt_pasteMap").asText());
               ui.getMainPanel().displayDocument(crdt.toString(), documentTitle, isReader);
-
+              
+              connectToWebSocket();
               // set up listeners
               listen();
 

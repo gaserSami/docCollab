@@ -22,6 +22,14 @@ public class UIController {
         this.ui = ui;
     }
 
+    public CollaborativeUI getUI(){
+        return ui;
+    }
+
+    public void setUI(CollaborativeUI ui){
+        this.ui = ui;
+    }
+
     /**
      * Handles the join button click event
      */
@@ -41,7 +49,6 @@ public class UIController {
     }
 
     public void handleJoin(String sessionCode) {
-        ui.getClient().connectToWebSocket();
         ui.getClient().joinDocument(sessionCode);
     }
 
