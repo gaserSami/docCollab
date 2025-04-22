@@ -1,8 +1,11 @@
 package com.gaser.docCollab.websocket;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.messaging.simp.stomp.StompHeaders;
 
 import com.gaser.docCollab.client.CRDT;
 
@@ -12,18 +15,21 @@ public class Message {
   String documentID;
   String documentTitle;
   private HashMap<Integer, Integer> activeUsers = new HashMap<Integer, Integer>();
-  private List<Integer> reconnectingUsers = new ArrayList<Integer>();
+  private List<Integer> reconnectingUsers;
   private String crdt = null; // serialized CRDT object
   public HashMap<String, String> codes;
   public boolean isReader = false;
   int lamportTime = 0;
+  StompHeaders connectedHeaders = null;
 
   public Message(int UID, String content) {
     this.UID = UID;
     this.content = content;
+    reconnectingUsers = new ArrayList<Integer>();
   }
 
   public Message() {
+    reconnectingUsers = new ArrayList<Integer>();
   }
 
   public int getUID() {
@@ -88,6 +94,14 @@ public class Message {
 
   public void setReconnectingUsers(List<Integer> reconnectingUsers) {
     this.reconnectingUsers = reconnectingUsers;
+  }
+
+  public void setHeaders(StompHeaders headers) {
+    this.connectedHeaders = headers;
+  }
+
+  public StompHeaders getHeaders() {
+    return connectedHeaders;
   }
 
 }

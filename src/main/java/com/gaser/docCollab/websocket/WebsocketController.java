@@ -8,10 +8,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.socket.messaging.SessionConnectEvent;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 @Controller
 public class WebsocketController {
@@ -24,13 +29,44 @@ public class WebsocketController {
         this.webSocketService = webSocketService;
     }
 
+    @EventListener
+    public void handleWebSocketConnectListener(SessionConnectEvent event) {
+        // Handle new connection
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String sessionId = headerAccessor.getSessionId();
+        System.out.println("New WebSocket connection: " + sessionId);
+    }
+
+    @EventListener
+    public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+        // Handle disconnection
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String sessionId = headerAccessor.getSessionId();
+        Integer userId = (Integer) headerAccessor.getSessionAttributes().get("userId");
+        String docId = (String) headerAccessor.getSessionAttributes().get("docId");
+
+        if (userId != null && docId != null) {
+            System.out.println("WebSocket disconnected: " + sessionId + " for user " + userId);
+            // if the user is in the active usersList then handle the disconnection
+            if(webSocketService.getActiveUsers(docId).containsKey(userId)) {
+                handleUserDisconnect(userId, docId);
+            }
+        }
+    }
+
     @MessageMapping("/join/{sessionCode}")
     public void onJoin(@DestinationVariable String sessionCode, Message message) {
         // Add user to document and get document info
         HashMap<String, String> res = webSocketService.joinDocument(message.getUID(), sessionCode);
-        webSocketService.removeReconnectingUser(res.get("docID"), message.getUID()); // if the user was in the reconnecting list
-
         String docID = res.get("docID");
+        
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        headerAccessor.setSessionAttributes(new HashMap<>());
+        headerAccessor.getSessionAttributes().put("userId", message.getUID());
+        headerAccessor.getSessionAttributes().put("docId", docID);
+        
+        webSocketService.removeReconnectingUser(res.get("docID"), message.getUID()); // if the user was in the reconnecting list
+        // the prev line does nothing if the user was not in the reconnecting list
         message.setActiveUsers(webSocketService.getActiveUsers(docID));
         int docLampertTime = webSocketService.getLampertTime(docID);
         message.setLamportTime(docLampertTime); // for syncing up
@@ -67,10 +103,11 @@ public class WebsocketController {
     // to be called when a user socket connection drops unexpectedly
     // not for normal leaving
     public void handleUserDisconnect(Integer UID, String docID){
-        if () { // user is still connected
-            // no action needed
-            return;
-        }
+         // user is still connected check on the socket connection
+        // if (
+        //     // no action needed
+        //     return;
+        // }
 
         // this is the firt part
         webSocketService.leaveDocument(UID, docID);
@@ -84,7 +121,7 @@ public class WebsocketController {
         // Simulate a delay to check if the user reconnects
         new Thread(() -> {
             try {
-                Thread.sleep(5000); // Wait for 5 seconds (TIMEOUT)
+                Thread.sleep(50000); // TIMEOUT
                 if(webSocketService.removeReconnectingUser(docID, UID)) // only if the user didn't connect till the timeout
                 {
                     message.setReconnectingUsers(webSocketService.getReconnectingUsers(docID));

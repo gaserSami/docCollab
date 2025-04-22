@@ -52,6 +52,7 @@ public class MyStompClient {
   private Stack<Operation> redoStack = new Stack<>();
   private String sessionCode = "";
   List<List<Operation>> bufferedOperations = new ArrayList<>();
+  StompHeaders connectedHeaders = null;
 
   public MyStompClient(int UID, CollaborativeUI ui) {
     this.UID = UID;
@@ -67,6 +68,14 @@ public class MyStompClient {
 
   public void setLamportTime(int lamportTime) {
     this.lamportTime = lamportTime;
+  }
+
+  public void setHeaders(StompHeaders headers) {
+    this.connectedHeaders = headers;
+  }
+
+  public StompHeaders getHeaders() {
+    return connectedHeaders;
   }
 
   public void incrementLamportTime() {
@@ -293,13 +302,13 @@ public class MyStompClient {
     ui.getTopBarPanel().markDisconnected();
     new Thread(() -> {
         int attempts = 0;
-        final int maxAttempts = 10;
+        final int maxAttempts = 5;
         boolean reconnected = false;
         
         while (attempts < maxAttempts && !reconnected) {
             System.out.println("Attempting to reconnect... (Attempt " + (attempts + 1) + ")");
             try {
-                Thread.sleep(5000);
+                Thread.sleep(10000);
                 javax.swing.SwingUtilities.invokeLater(() -> {
                   ui.getController().showBlockingDialogBox("Reconnecting... Please wait.");
                 });
@@ -335,7 +344,7 @@ public class MyStompClient {
                       ui.getController().closeBlockingDialogBox();
                       ui.showMessage("Reconnected successfully!");
                       ui.getTopBarPanel().clearDisconnectedMark();
-                      ui.getSidebarPanel().updateActiveUsers(Collections.emptyList());
+                      // ui.getSidebarPanel().updateActiveUsers(Collections.emptyList());
                   });
                 }
             } catch (Exception e) {
@@ -503,6 +512,7 @@ public class MyStompClient {
               listen();
 
               Message message = new Message(UID, "join");
+              // message.setHeaders(connectedHeaders);
               session.send("/app/join/" + sessionCode, message);
               return true;
             } else {
@@ -530,6 +540,7 @@ public class MyStompClient {
   public void leaveDocument(String documentID) {
     if (session != null && session.isConnected()) {
       Message message = new Message(UID, "leave");
+      // message.setHeaders(connectedHeaders);
       session.send("/app/leave/" + documentID, message);
     } else {
       System.out.println("Session is not connected. Cannot leave document.");

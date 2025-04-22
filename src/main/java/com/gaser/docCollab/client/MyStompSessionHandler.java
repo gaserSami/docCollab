@@ -13,6 +13,7 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter {
 
   @Override
   public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+    stompClient.setHeaders(connectedHeaders);
     // do nothing
   }
 
