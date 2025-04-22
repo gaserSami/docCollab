@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -55,13 +56,11 @@ public class WebsocketController {
     }
 
     @MessageMapping("/join/{sessionCode}")
-    public void onJoin(@DestinationVariable String sessionCode, Message message) {
+    public void onJoin(@DestinationVariable String sessionCode, Message message, SimpMessageHeaderAccessor headerAccessor) {
         // Add user to document and get document info
         HashMap<String, String> res = webSocketService.joinDocument(message.getUID(), sessionCode);
         String docID = res.get("docID");
         
-        StompHeaderAccessor headerAccessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-        headerAccessor.setSessionAttributes(new HashMap<>());
         headerAccessor.getSessionAttributes().put("userId", message.getUID());
         headerAccessor.getSessionAttributes().put("docId", docID);
         
