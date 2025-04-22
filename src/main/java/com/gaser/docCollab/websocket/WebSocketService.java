@@ -73,6 +73,23 @@ public class WebSocketService {
     return documents.get(docId).getActiveUsers();
   }
 
+  public List<Integer> getReconnectingUsers(String docId) {
+    return documents.get(docId).getReconnectingUsers();
+  }
+
+  public void addReconnectingUser(String docId, int UID) {
+    documents.get(docId).getReconnectingUsers().add(UID);
+  }
+
+  public boolean removeReconnectingUser(String docId, int UID) {
+      List<Integer> reconnectingUsers = documents.get(docId).getReconnectingUsers();
+      if (reconnectingUsers.contains(UID)) {
+          reconnectingUsers.remove(Integer.valueOf(UID));
+          return true; // Successfully removed
+      }
+      return false; // User was not in the list
+  }
+
   public void handleOperations(String docId, List<Operation> operations) {
     documents.get(docId).getCrdt().handleOperations(operations);
   }

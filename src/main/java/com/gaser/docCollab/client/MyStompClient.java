@@ -43,6 +43,7 @@ public class MyStompClient {
   private String documentTitle = "null";
   public HashMap<String, String> codes;
   private HashMap<Integer, Integer> activeUsers;
+  private List<Integer> reconnectingUsers = new ArrayList<Integer>();
   private boolean isReader = false;
   private CRDT crdt;
   private CollaborativeUI ui;
@@ -72,20 +73,13 @@ public class MyStompClient {
     lamportTime++;
   }
 
-  // public void onUserJoin(int UID) {
-  // activeUserIds.add(UID);
-  // cursorPositions.add(0);
-  // }
+  public void setReconnectingUsers(List<Integer> reconnectingUsers) {
+    this.reconnectingUsers = reconnectingUsers;
+  }
 
-  // public void onUserLeave(int UID) {
-  // for (int i = 0; i < activeUserIds.size(); i++) {
-  // if (activeUserIds.get(i).equals(UID)) {
-  // activeUserIds.remove(i);
-  // cursorPositions.remove(i);
-  // break;
-  // }
-  // }
-  // }
+  public List<Integer> getReconnectingUsers() {
+    return reconnectingUsers;
+  }
 
   public void setActiveUsers(HashMap<Integer, Integer> activeUsers) {
     this.activeUsers = activeUsers;
@@ -108,6 +102,7 @@ public class MyStompClient {
 
   public void onSocketUsers(Message message) {
     setActiveUsers(message.getActiveUsers());
+    setReconnectingUsers(message.getReconnectingUsers());
     lamportTime = Math.max(lamportTime, message.getLamportTime());
 
     getUI().getSidebarPanel().updateActiveUsers(
@@ -117,6 +112,13 @@ public class MyStompClient {
               Integer position = getCursorPositions().get(idx);
               String userLabel = id.equals(getUID()) ? "User " + id + " (you)" : "User " + id;
               return userLabel + " • Position: " + position;
+            })
+            .collect(java.util.stream.Collectors.toList()));
+    getUI().getSidebarPanel().updateReconnectingUsers(
+        IntStream.range(0, getReconnectingUsers().size())
+            .mapToObj(idx -> {
+              Integer id = getReconnectingUsers().get(idx);
+              return "User " + id + " (reconnecting)";
             })
             .collect(java.util.stream.Collectors.toList()));
   }

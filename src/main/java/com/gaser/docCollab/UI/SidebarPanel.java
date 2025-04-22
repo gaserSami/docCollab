@@ -10,6 +10,10 @@ import java.util.List;
 public class SidebarPanel extends JPanel {
     private JList<String> activeUsersList;
     private DefaultListModel<String> usersListModel;
+
+    private JList<String> reconnectingUsersList;
+    private DefaultListModel<String> reconnectingUsersListModel; 
+
     private int UID;
 
     public SidebarPanel(int UID) {
@@ -22,6 +26,7 @@ public class SidebarPanel extends JPanel {
     }
 
     private void initComponents() {
+        // Active Users Section
         JLabel activeUsersLabel = new JLabel("Active Users");
         activeUsersLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -37,6 +42,23 @@ public class SidebarPanel extends JPanel {
 
         add(usersLabelPanel, BorderLayout.NORTH);
         add(new JScrollPane(activeUsersList), BorderLayout.CENTER);
+
+        // Reconnecting Users Section
+        JLabel reconnectingUsersLabel = new JLabel("Reconnecting Users");
+        reconnectingUsersLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        reconnectingUsersListModel = new DefaultListModel<>();
+        reconnectingUsersList = new JList<>(reconnectingUsersListModel);
+        reconnectingUsersList.setCellRenderer(new ActiveUserRenderer());
+        reconnectingUsersList.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        JPanel reconnectingUsersPanel = new JPanel(new BorderLayout());
+        reconnectingUsersPanel.add(reconnectingUsersLabel, BorderLayout.WEST);
+        reconnectingUsersPanel.setBackground(new Color(230, 230, 235));
+        reconnectingUsersPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 5, 10));
+
+        add(reconnectingUsersPanel, BorderLayout.SOUTH);
+        add(new JScrollPane(reconnectingUsersList), BorderLayout.SOUTH);
     }
 
     /**
@@ -49,6 +71,15 @@ public class SidebarPanel extends JPanel {
             usersListModel.clear();
             for (String user : users) {
                 usersListModel.addElement(user);
+            }
+        });
+    }
+
+    public void updateReconnectingUsers(List<String> users) {
+        SwingUtilities.invokeLater(() -> {
+            reconnectingUsersListModel.clear();
+            for (String user : users) {
+                reconnectingUsersListModel.addElement(user);
             }
         });
     }
@@ -91,11 +122,11 @@ public class SidebarPanel extends JPanel {
                 boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(
                     list, value, index, isSelected, cellHasFocus);
-    
+
             label.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-    
+
             String username = (String) value;
-    
+
             if (!isSelected) {
                 label.setBackground(new Color(230, 230, 235));
                 // Use the COLORS class to set a different color for each user
@@ -103,7 +134,7 @@ public class SidebarPanel extends JPanel {
                 String colorHex = COLORS.getColor(index % 4);
                 label.setForeground(Color.decode(colorHex));
             }
-    
+
             return label;
         }
     }

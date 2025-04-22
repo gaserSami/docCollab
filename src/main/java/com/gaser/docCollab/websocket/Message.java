@@ -1,6 +1,7 @@
 package com.gaser.docCollab.websocket;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.gaser.docCollab.client.CRDT;
@@ -11,6 +12,7 @@ public class Message {
   String documentID;
   String documentTitle;
   private HashMap<Integer, Integer> activeUsers = new HashMap<Integer, Integer>();
+  private List<Integer> reconnectingUsers = new ArrayList<Integer>();
   private String crdt = null; // serialized CRDT object
   public HashMap<String, String> codes;
   public boolean isReader = false;
@@ -78,6 +80,14 @@ public class Message {
 
   public int getLamportTime() {
     return lamportTime;
+  }
+
+  public List<Integer> getReconnectingUsers() {
+    return reconnectingUsers;
+  }
+
+  public void setReconnectingUsers(List<Integer> reconnectingUsers) {
+    this.reconnectingUsers = reconnectingUsers;
   }
 
 }

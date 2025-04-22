@@ -1,5 +1,7 @@
 package com.gaser.docCollab.server.Document;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.gaser.docCollab.client.CRDT;
@@ -13,6 +15,7 @@ public class Document {
     private String editorCode;
     private CRDT crdt;
     private HashMap<Integer, Integer> activeUsers = new HashMap<Integer, Integer>(); // user and its cursor pos
+    private List<Integer> reconnectingUsers = new ArrayList<>(); // userid only
 
     public Document() {
         this.crdt = new CRDT();
@@ -99,5 +102,13 @@ public class Document {
 
     public void initializeContent(String initialContent) {
         crdt.fromString(initialContent);
+    }
+
+    public void setReconnectingUsers(List<Integer> reconnectingUsers) {
+        this.reconnectingUsers = reconnectingUsers;
+    }
+
+    public List<Integer> getReconnectingUsers() {
+        return reconnectingUsers;
     }
 }
