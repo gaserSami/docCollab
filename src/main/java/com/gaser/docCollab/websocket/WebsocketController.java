@@ -79,7 +79,7 @@ public class WebsocketController {
         messagingTemplate.convertAndSend("/topic/users/" + docID, message);
         
         // Unlock the document now that the join process is complete
-        webSocketService.unlockDocument(docID);
+        webSocketService.decrementJoinCount(docID);
     }
 
     @MessageMapping("/leave/{docID}")
@@ -95,7 +95,7 @@ public class WebsocketController {
         // Instead of blocking on the document lock, this method now tracks that an operation is in progress
         try {
             // Check only for general document lock (join in progress)
-            while (webSocketService.isDocumentLocked(documentID)) {
+            while (webSocketService.hasActiveJoins(documentID)) {
                 Thread.sleep(50); // Wait briefly then check again
             }
             

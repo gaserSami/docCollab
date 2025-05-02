@@ -19,8 +19,8 @@ public class WebSocketService {
   private ConcurrentHashMap<String, String> readCode = new ConcurrentHashMap<>(); // readcode - > docId
   private ConcurrentHashMap<String, String> writeCode = new ConcurrentHashMap<>(); // writecode - > docId
   private ConcurrentHashMap<String, Integer> lampertTime = new ConcurrentHashMap<>(); // docId - > lampertTime
-  private ConcurrentHashMap<String, Boolean> lockedDocuments = new ConcurrentHashMap<>(); // docId -> isLocked
   private ConcurrentHashMap<String, AtomicInteger> activeOperations = new ConcurrentHashMap<>(); // docId -> count of operations in progress
+  private ConcurrentHashMap<String, AtomicInteger> activeJoins = new ConcurrentHashMap<>(); // docId -> count of active joins
 
   public HashMap<String, String> createDocument(int UID, String name, String initialContent) {
     // return id, either readonlycode or the read
@@ -144,18 +144,6 @@ public class WebSocketService {
     return lampertTime.get(docId);
   }
 
-  public void lockDocument(String docId) {
-    lockedDocuments.put(docId, true);
-  }
-
-  public void unlockDocument(String docId) {
-    lockedDocuments.put(docId, false);
-  }
-
-  public boolean isDocumentLocked(String docId) {
-    return lockedDocuments.getOrDefault(docId, false);
-  }
-
   // Operation lock methods
   public void incrementOperationCount(String docId) {
     activeOperations.computeIfAbsent(docId, k -> new AtomicInteger(0)).incrementAndGet();
@@ -170,6 +158,23 @@ public class WebSocketService {
 
   public boolean hasActiveOperations(String docId) {
     AtomicInteger count = activeOperations.get(docId);
+    return count != null && count.get() > 0;
+  }
+  
+  // Join lock methods
+  public void incrementJoinCount(String docId) {
+    activeJoins.computeIfAbsent(docId, k -> new AtomicInteger(0)).incrementAndGet();
+  }
+
+  public void decrementJoinCount(String docId) {
+    AtomicInteger count = activeJoins.get(docId);
+    if (count != null) {
+      count.decrementAndGet();
+    }
+  }
+
+  public boolean hasActiveJoins(String docId) {
+    AtomicInteger count = activeJoins.get(docId);
     return count != null && count.get() > 0;
   }
 }

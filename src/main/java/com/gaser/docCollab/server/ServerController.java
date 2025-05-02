@@ -31,7 +31,7 @@ public class ServerController {
         if (documentId != null) {
             // Lock the document during retrieval to prevent concurrent operations
             // This means the document will be locked when user joins
-            webSocketService.lockDocument(documentId);
+            webSocketService.incrementJoinCount(documentId);
             
             // Wait for any active operations to complete before proceeding
             waitForActiveOperations(documentId);
