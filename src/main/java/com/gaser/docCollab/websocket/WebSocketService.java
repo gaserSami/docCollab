@@ -6,6 +6,7 @@ import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ public class WebSocketService {
   private ConcurrentHashMap<String, String> writeCode = new ConcurrentHashMap<>(); // writecode - > docId
   private ConcurrentHashMap<String, Integer> lampertTime = new ConcurrentHashMap<>(); // docId - > lampertTime
   private ConcurrentHashMap<String, Boolean> lockedDocuments = new ConcurrentHashMap<>(); // docId -> isLocked
+  private ConcurrentHashMap<String, AtomicInteger> activeOperations = new ConcurrentHashMap<>(); // docId -> count of operations in progress
 
   public HashMap<String, String> createDocument(int UID, String name, String initialContent) {
     // return id, either readonlycode or the read
@@ -39,6 +41,7 @@ public class WebSocketService {
     this.writeCode.put(editorCode, id);
     this.lampertTime.put(id, 0);
     this.lockedDocuments.put(id, false); // Initialize as unlocked
+    this.activeOperations.put(id, new AtomicInteger(0)); // Initialize operation counter
 
     HashMap<String, String> result = new HashMap<>();
     result.put("docID", id);
@@ -154,5 +157,22 @@ public class WebSocketService {
 
   public boolean isDocumentLocked(String docId) {
     return lockedDocuments.getOrDefault(docId, false);
+  }
+
+  // Operation lock methods
+  public void incrementOperationCount(String docId) {
+    activeOperations.computeIfAbsent(docId, k -> new AtomicInteger(0)).incrementAndGet();
+  }
+
+  public void decrementOperationCount(String docId) {
+    AtomicInteger count = activeOperations.get(docId);
+    if (count != null) {
+      count.decrementAndGet();
+    }
+  }
+
+  public boolean hasActiveOperations(String docId) {
+    AtomicInteger count = activeOperations.get(docId);
+    return count != null && count.get() > 0;
   }
 }

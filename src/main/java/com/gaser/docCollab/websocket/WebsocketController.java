@@ -64,6 +64,9 @@ public class WebsocketController {
         headerAccessor.getSessionAttributes().put("userId", message.getUID());
         headerAccessor.getSessionAttributes().put("docId", docID);
         
+        // Before proceeding with join, wait for any active operations to complete
+        waitForActiveOperations(docID);
+        
         webSocketService.removeReconnectingUser(res.get("docID"), message.getUID()); // if the user was in the reconnecting list
         // the prev line does nothing if the user was not in the reconnecting list
         message.setActiveUsers(webSocketService.getActiveUsers(docID));
@@ -79,6 +82,21 @@ public class WebsocketController {
         webSocketService.unlockDocument(docID);
     }
 
+    /**
+     * Waits for all active operations on the document to complete before proceeding
+     * This ensures that a join doesn't interfere with ongoing operations
+     */
+    private void waitForActiveOperations(String documentID) {
+        while (webSocketService.hasActiveOperations(documentID)) {
+            try {
+                Thread.sleep(100); // Small delay to check again
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
     @MessageMapping("/leave/{docID}")
     public void onLeave(@DestinationVariable String docID, Message message) {
         webSocketService.leaveDocument(message.getUID(), docID);
@@ -89,14 +107,27 @@ public class WebsocketController {
 
     @MessageMapping("/operations/{documentID}")
     public void onSend(@DestinationVariable String documentID, List<Operation> operations) {
-        // Check if the document is locked (join in progress) - if so, reject operations
-        while (webSocketService.isDocumentLocked(documentID)) {}
-        
-        webSocketService.setLampertTime(documentID,
-                Math.max(webSocketService.getLampertTime(documentID), operations.get(operations.size() - 1).getTime())
-                        + 1);
-        webSocketService.handleOperations(documentID, operations);
-        messagingTemplate.convertAndSend("/topic/operations/" + documentID, operations);
+        // Instead of blocking on the document lock, this method now tracks that an operation is in progress
+        try {
+            // Check only for general document lock (join in progress)
+            while (webSocketService.isDocumentLocked(documentID)) {
+                Thread.sleep(50); // Wait briefly then check again
+            }
+            
+            // Increment the active operations counter
+            webSocketService.incrementOperationCount(documentID);
+            
+            webSocketService.setLampertTime(documentID,
+                    Math.max(webSocketService.getLampertTime(documentID), operations.get(operations.size() - 1).getTime())
+                            + 1);
+            webSocketService.handleOperations(documentID, operations);
+            messagingTemplate.convertAndSend("/topic/operations/" + documentID, operations);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            // Ensure the counter is decremented even if an exception occurs
+            webSocketService.decrementOperationCount(documentID);
+        }
     }
 
     @MessageMapping("/cursors/{documentID}")
@@ -112,7 +143,7 @@ public class WebsocketController {
         // if (
         //     // no action needed
         //     return;
-        // }
+        // )
 
         // this is the firt part
         webSocketService.leaveDocument(UID, docID);
@@ -137,5 +168,4 @@ public class WebsocketController {
             }
         }).start();
     }
-
 }
