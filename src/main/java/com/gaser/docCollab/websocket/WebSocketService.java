@@ -40,7 +40,6 @@ public class WebSocketService {
     this.readCode.put(readCode, id);
     this.writeCode.put(editorCode, id);
     this.lampertTime.put(id, 0);
-    this.lockedDocuments.put(id, false); // Initialize as unlocked
     this.activeOperations.put(id, new AtomicInteger(0)); // Initialize operation counter
 
     HashMap<String, String> result = new HashMap<>();
