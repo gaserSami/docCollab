@@ -18,6 +18,7 @@ public class WebSocketService {
   private ConcurrentHashMap<String, String> readCode = new ConcurrentHashMap<>(); // readcode - > docId
   private ConcurrentHashMap<String, String> writeCode = new ConcurrentHashMap<>(); // writecode - > docId
   private ConcurrentHashMap<String, Integer> lampertTime = new ConcurrentHashMap<>(); // docId - > lampertTime
+  private ConcurrentHashMap<String, Boolean> lockedDocuments = new ConcurrentHashMap<>(); // docId -> isLocked
 
   public HashMap<String, String> createDocument(int UID, String name, String initialContent) {
     // return id, either readonlycode or the read
@@ -37,6 +38,7 @@ public class WebSocketService {
     this.readCode.put(readCode, id);
     this.writeCode.put(editorCode, id);
     this.lampertTime.put(id, 0);
+    this.lockedDocuments.put(id, false); // Initialize as unlocked
 
     HashMap<String, String> result = new HashMap<>();
     result.put("docID", id);
@@ -53,6 +55,10 @@ public class WebSocketService {
       return null;
 
     String docId = isReadCode ? readCode.get(code) : writeCode.get(code);
+    
+    // Lock the document during join
+    lockDocument(docId);
+    
     Document document = documents.get(docId);
     document.addActiveUser(UID, 0);
 
@@ -62,6 +68,8 @@ public class WebSocketService {
     result.put("crdt", document.getCrdt().serialize());
     result.put("isReader", readCode.containsKey(code) ? "true" : "false");
 
+    // Document will be unlocked in the WebsocketController after broadcasting the join message
+    
     return result;
   }
 
@@ -136,4 +144,15 @@ public class WebSocketService {
     return lampertTime.get(docId);
   }
 
+  public void lockDocument(String docId) {
+    lockedDocuments.put(docId, true);
+  }
+
+  public void unlockDocument(String docId) {
+    lockedDocuments.put(docId, false);
+  }
+
+  public boolean isDocumentLocked(String docId) {
+    return lockedDocuments.getOrDefault(docId, false);
+  }
 }

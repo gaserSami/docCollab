@@ -74,6 +74,9 @@ public class WebsocketController {
 
         // Broadcast to all clients including the sender
         messagingTemplate.convertAndSend("/topic/users/" + docID, message);
+        
+        // Unlock the document now that the join process is complete
+        webSocketService.unlockDocument(docID);
     }
 
     @MessageMapping("/leave/{docID}")
@@ -86,6 +89,9 @@ public class WebsocketController {
 
     @MessageMapping("/operations/{documentID}")
     public void onSend(@DestinationVariable String documentID, List<Operation> operations) {
+        // Check if the document is locked (join in progress) - if so, reject operations
+        while (webSocketService.isDocumentLocked(documentID)) {}
+        
         webSocketService.setLampertTime(documentID,
                 Math.max(webSocketService.getLampertTime(documentID), operations.get(operations.size() - 1).getTime())
                         + 1);
