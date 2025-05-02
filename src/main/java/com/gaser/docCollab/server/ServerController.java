@@ -29,6 +29,13 @@ public class ServerController {
         HashMap<String, String> response = new HashMap<>();
         String documentId = webSocketService.getDocumentIDFromSessionCode(sessionCode);
         if (documentId != null) {
+            // Lock the document during retrieval to prevent concurrent operations
+            // This means the document will be locked when user joins
+            webSocketService.lockDocument(documentId);
+            
+            // Wait for any active operations to complete before proceeding
+            waitForActiveOperations(documentId);
+            
             response.put("documentId", documentId);
             boolean isReadCode = webSocketService.isReadCode(sessionCode);
             response.put("readonlycode", webSocketService.getReadOnlyCode(documentId));
@@ -42,6 +49,21 @@ public class ServerController {
             response.put("error", "Invalid session code");
         }
         return response;
+    }
+    
+    /**
+     * Waits for all active operations on the document to complete before proceeding
+     * This ensures that document retrieval doesn't interfere with ongoing operations
+     */
+    private void waitForActiveOperations(String documentID) {
+        while (webSocketService.hasActiveOperations(documentID)) {
+            try {
+                Thread.sleep(100); // Small delay to check again
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
     }
 
 }

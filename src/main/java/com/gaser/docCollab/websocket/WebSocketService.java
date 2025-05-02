@@ -59,9 +59,6 @@ public class WebSocketService {
 
     String docId = isReadCode ? readCode.get(code) : writeCode.get(code);
     
-    // Lock the document during join
-    lockDocument(docId);
-    
     Document document = documents.get(docId);
     document.addActiveUser(UID, 0);
 

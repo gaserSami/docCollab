@@ -64,8 +64,8 @@ public class WebsocketController {
         headerAccessor.getSessionAttributes().put("userId", message.getUID());
         headerAccessor.getSessionAttributes().put("docId", docID);
         
-        // Before proceeding with join, wait for any active operations to complete
-        waitForActiveOperations(docID);
+        // Document is already locked by ServerController when fetching document info
+        // No need to wait for active operations here as it's handled by ServerController
         
         webSocketService.removeReconnectingUser(res.get("docID"), message.getUID()); // if the user was in the reconnecting list
         // the prev line does nothing if the user was not in the reconnecting list
@@ -80,21 +80,6 @@ public class WebsocketController {
         
         // Unlock the document now that the join process is complete
         webSocketService.unlockDocument(docID);
-    }
-
-    /**
-     * Waits for all active operations on the document to complete before proceeding
-     * This ensures that a join doesn't interfere with ongoing operations
-     */
-    private void waitForActiveOperations(String documentID) {
-        while (webSocketService.hasActiveOperations(documentID)) {
-            try {
-                Thread.sleep(100); // Small delay to check again
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
     }
 
     @MessageMapping("/leave/{docID}")
