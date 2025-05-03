@@ -124,6 +124,7 @@ public class MyStompClient {
               return userLabel + " • Position: " + position;
             })
             .collect(java.util.stream.Collectors.toList()));
+    getUI().getMainPanel().updateCursorPositions(activeUsers);
     getUI().getSidebarPanel().updateReconnectingUsers(
         IntStream.range(0, getReconnectingUsers().size())
             .mapToObj(idx -> {
@@ -147,6 +148,7 @@ public class MyStompClient {
               return userLabel + " • Position: " + position;
             })
             .collect(java.util.stream.Collectors.toList()));
+    getUI().getMainPanel().updateCursorPositions(activeUsers);
   }
 
   public void onSocketCursors(Cursor cursor) {

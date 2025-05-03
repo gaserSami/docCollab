@@ -7,6 +7,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.JTextComponent;
 
 import com.gaser.docCollab.server.OperationType;
 
@@ -26,6 +27,7 @@ public class MainDocumentPanel extends JPanel {
     private boolean isLocalChange = true;
     private HashMap<Integer, Integer> userCursorPositions = new HashMap<>();
     private HashMap<Integer, Object> userCursorHighlights = new HashMap<>();
+    private CursorOverlayPanel cursorOverlay;
 
     public MainDocumentPanel(UIController controller) {
         this.controller = controller;
@@ -53,7 +55,6 @@ public class MainDocumentPanel extends JPanel {
         textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-
         textArea.setEditable(!isReader);
 
         // Add a visual indicator if in read-only mode
@@ -144,6 +145,16 @@ public class MainDocumentPanel extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(textArea);
 
+         // Create and add cursor overlay
+         cursorOverlay = new CursorOverlayPanel(textArea);
+         scrollPane.setViewportView(new JLayeredPane() {
+             {
+                 setLayout(new OverlayLayout(this));
+                 add(textArea, JLayeredPane.DEFAULT_LAYER);
+                 add(cursorOverlay, JLayeredPane.PALETTE_LAYER);
+             }
+         });
+
         // Create a document header panel
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -163,19 +174,12 @@ public class MainDocumentPanel extends JPanel {
 
     public void removeDocument() {
         if (textArea != null) {
-            // Clear cursor highlights
-            DefaultHighlighter highlighter = (DefaultHighlighter) textArea.getHighlighter();
-            for (Object tag : userCursorHighlights.values()) {
-                highlighter.removeHighlight(tag);
-            }
-            userCursorHighlights.clear();
-            userCursorPositions.clear();
-            
             // Remove all components from the panel
             removeAll();
             
             // Reset text area reference
             textArea = null;
+            cursorOverlay = null;
             currentFileName = "Untitled.txt";
             
             // Refresh the UI
@@ -195,49 +199,11 @@ public class MainDocumentPanel extends JPanel {
     }
 
     public void updateCursorPositions(HashMap<Integer, Integer> cursorPositions) {
-        if (textArea != null) {
-            // Replace the current cursor positions with the new ones
-            this.userCursorPositions = new HashMap<>(cursorPositions);
-
-            // Update the highlights on the EDT to avoid threading issues
+        if (cursorOverlay != null) {
+            // Update cursor positions in the overlay
             SwingUtilities.invokeLater(() -> {
-                drawCursors();
+                cursorOverlay.updateCursorPositions(cursorPositions);
             });
-        }
-    }
-
-    private void drawCursors() {
-        // Clear existing highlights
-        if (textArea != null) {
-            DefaultHighlighter highlighter = (DefaultHighlighter) textArea.getHighlighter();
-            
-            // Remove all previous cursor highlights
-            for (Object tag : userCursorHighlights.values()) {
-                highlighter.removeHighlight(tag);
-            }
-            userCursorHighlights.clear();
-            
-            // Add new highlights for each user cursor
-            for (Integer userId : userCursorPositions.keySet()) {
-                Integer position = userCursorPositions.get(userId);
-                if (position != null && position >= 0 && position <= textArea.getText().length()) {
-                    try {
-                        // Get color for this user (cycling through available colors)
-                        String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(userId % 4);
-                        Color cursorColor = Color.decode(colorHex);
-                        
-                        // Create a custom painter for vertical cursor line
-                        DefaultHighlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(cursorColor);
-                        
-                        // Add the highlight (a 1-pixel width line at the cursor position)
-                        Object tag = highlighter.addHighlight(position, position, painter);
-                        userCursorHighlights.put(userId, tag);
-                        
-                    } catch (BadLocationException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
         }
     }
 
