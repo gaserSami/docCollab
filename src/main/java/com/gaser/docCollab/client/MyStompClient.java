@@ -53,6 +53,7 @@ public class MyStompClient {
   private String sessionCode = "";
   List<List<Operation>> bufferedOperations = new ArrayList<>();
   StompHeaders connectedHeaders = null;
+  MyStompSessionHandler sessionHandler = null;
 
   public MyStompClient(int UID, CollaborativeUI ui) {
     this.UID = UID;
@@ -237,7 +238,7 @@ public class MyStompClient {
 
       stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
-      StompSessionHandler sessionHandler = new MyStompSessionHandler(this);
+      sessionHandler = new MyStompSessionHandler(this);
       String url = "ws://localhost:8080/ws";
 
       session = stompClient.connectAsync(url, sessionHandler).get();
@@ -271,6 +272,10 @@ public class MyStompClient {
 
         // Clear session reference
         session = null;
+        if(sessionHandler != null) {
+          sessionHandler.stopConnectionMonitor();
+        }
+        sessionHandler = null;
 
         // Clear active users and cursor positions
         activeUsers.clear();
@@ -308,7 +313,9 @@ public class MyStompClient {
         while (attempts < maxAttempts && !reconnected) {
             System.out.println("Attempting to reconnect... (Attempt " + (attempts + 1) + ")");
             try {
-                Thread.sleep(10000);
+              if (attempts > 0) {
+                Thread.sleep(5000);
+              }
                 javax.swing.SwingUtilities.invokeLater(() -> {
                   ui.getController().showBlockingDialogBox("Reconnecting... Please wait.");
                 });
@@ -381,7 +388,7 @@ public class MyStompClient {
   public void simulateUnexpectedDisconnect() {
     if (session != null && session.isConnected()) {
         session.disconnect();
-        handleUnexpectedDisconnect();
+        // handleUnexpectedDisconnect();
     }
 }
 
