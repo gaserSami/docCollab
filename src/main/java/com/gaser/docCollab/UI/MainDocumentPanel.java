@@ -268,9 +268,9 @@ public class MainDocumentPanel extends JPanel {
 
             isLocalChange = false;
             textArea.setText(content);
+            isLocalChange = true;
             // Make sure the adjusted caret position is valid
             textArea.setCaretPosition(Math.min(Math.max(0, currentCaretPosition), content.length()));
-            isLocalChange = true;
         }
     }
 

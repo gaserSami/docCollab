@@ -4,7 +4,9 @@ import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,15 +33,20 @@ public class CursorOverlayPanel extends JPanel {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g.create();
         
+        // Get list of user IDs in the same order they would appear in the sidebar
+        List<Integer> activeUserIds = new ArrayList<>(userCursorPositions.keySet());
+        
         // Add new cursor indicators for each user
-        int idx = 0;
         for (Integer userId : userCursorPositions.keySet()) {
             Integer position = userCursorPositions.get(userId);
             if (position != null && position >= 0 && position <= textComponent.getText().length()) {
                 try {
-                    // Get color for this user (either from map or generate new)
+                    // Find the user's index in the activeUserIds list
+                    int userIndex = activeUserIds.indexOf(userId);
+                    
+                    // Get color for this user using the same index as in sidebar
                     Color cursorColor;
-                    String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(idx % 4);
+                    String colorHex = com.gaser.docCollab.websocket.COLORS.getColor(userIndex % 4);
                     cursorColor = Color.decode(colorHex);
                     
                     // Get the rectangle for the position
@@ -57,7 +64,6 @@ public class CursorOverlayPanel extends JPanel {
                     e.printStackTrace();
                 }
             }
-            idx++;
         }
         
         g2d.dispose();
