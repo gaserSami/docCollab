@@ -26,6 +26,7 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter {
 
   private void startConnectionMonitor() {
     if (monitorRunning.get()) {
+      System.out.println("Motor is already running, skipping start.");
       return; // Monitor already running
     }
     
@@ -52,6 +53,7 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter {
       } finally {
         monitorRunning.set(false);
       }
+      System.out.println("Connection monitor stopped");
     });
     
     connectionMonitor.setDaemon(true); // Make it a daemon thread so it doesn't prevent JVM shutdown
