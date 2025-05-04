@@ -21,7 +21,7 @@ public class MyStompSessionHandler extends StompSessionHandlerAdapter {
     stompClient.setHeaders(connectedHeaders);
     
     // Start the connection monitoring thread
-    startConnectionMonitor();
+    // startConnectionMonitor();
   }
 
   private void startConnectionMonitor() {

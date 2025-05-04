@@ -7,6 +7,7 @@ import com.gaser.docCollab.server.Operation;
 import com.gaser.docCollab.server.OperationType;
 import com.gaser.docCollab.server.SecondaryType;
 import com.gaser.docCollab.websocket.Cursor;
+import com.fasterxml.jackson.core.type.TypeReference; // Added import for TypeReference
 
 import java.io.*;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class UIController {
      * Handles the join button click event
      */
     public void handleJoinButtonClick() {
-        this.ui.getClient().disconnectFromWebSocket();
+        // this.ui.getClient().disconnectFromWebSocket();
 
         // ui.getClient().setDocumentID(res.get("docID"));
         // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
@@ -50,8 +51,25 @@ public class UIController {
     }
 
     public void handleJoin(String sessionCode) {
-        ui.getClient().connectToWebSocket();
-        ui.getClient().joinDocument(sessionCode);
+        // First validate the session code
+        try {
+            String validationUrl = "http://localhost:8080/api/document/validate/" + sessionCode;
+            HashMap<String, Boolean> response = ui.getClient().makeGetRequest(validationUrl, new TypeReference<HashMap<String, Boolean>>() {});
+            
+            if (response != null && response.containsKey("valid") && response.get("valid")) {
+                // Session code is valid, proceed with connection
+                ui.getClient().disconnectFromWebSocket();
+                ui.getClient().connectToWebSocket();
+                ui.getClient().joinDocument(sessionCode);
+            } else {
+                // Session code is invalid
+                JOptionPane.showMessageDialog(ui, "Invalid session code. Please check and try again.", 
+                        "Invalid Code", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(ui, "Error validating session code: " + e.getMessage(), 
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -294,7 +312,7 @@ public class UIController {
             return;
         }
 
-        ui.getClient().disconnectFromWebSocket();
+        // ui.getClient().disconnectFromWebSocket();
 
         // ui.getClient().setDocumentID(res.get("docID"));
         // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));
@@ -397,7 +415,7 @@ public class UIController {
                 }
 
                 // Disconnect from any previous connection and join the new document
-                ui.getClient().disconnectFromWebSocket();
+                // ui.getClient().disconnectFromWebSocket();
 
                 // ui.getClient().setDocumentID(res.get("docID"));
                 // ui.getClient().codes.put("readonlyCode", res.get("readonlyCode"));

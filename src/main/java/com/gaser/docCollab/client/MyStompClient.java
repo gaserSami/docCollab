@@ -29,11 +29,19 @@ import org.springframework.web.socket.sockjs.client.Transport;
 import java.util.List;
 import java.util.Stack;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
 
 public class MyStompClient {
   private StompSession session;
@@ -654,5 +662,21 @@ public class MyStompClient {
       return null;
     }
   }
+
+  public <T> T makeGetRequest(String urlString, TypeReference<T> typeReference) throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
+    connection.setRequestMethod("GET");
+    connection.setRequestProperty("Accept", "application/json");
+
+    if (connection.getResponseCode() != 200) {
+        throw new IOException("Failed to make GET request. HTTP error code: " + connection.getResponseCode());
+    }
+
+    try (Scanner scanner = new Scanner(connection.getInputStream())) {
+        String response = scanner.useDelimiter("\\A").next();
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(response, typeReference);
+    }
+}
 
 }

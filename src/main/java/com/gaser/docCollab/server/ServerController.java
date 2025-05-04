@@ -52,6 +52,19 @@ public class ServerController {
     }
     
     /**
+     * Endpoint to check if a session code is valid without retrieving document data
+     * @param sessionCode The session code to validate
+     * @return A HashMap with a boolean indicating if the code is valid
+     */
+    @GetMapping("/validate/{sessionCode}")
+    public HashMap<String, Boolean> validateSessionCode(@PathVariable String sessionCode) {
+        HashMap<String, Boolean> response = new HashMap<>();
+        String documentId = webSocketService.getDocumentIDFromSessionCode(sessionCode);
+        response.put("valid", documentId != null);
+        return response;
+    }
+    
+    /**
      * Waits for all active operations on the document to complete before proceeding
      * This ensures that document retrieval doesn't interfere with ongoing operations
      */
