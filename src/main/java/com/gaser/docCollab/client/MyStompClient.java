@@ -320,50 +320,47 @@ public class MyStompClient {
         final int maxAttempts = 5;
         boolean reconnected = false;
         
+        // Show blocking dialog at the start
+        javax.swing.SwingUtilities.invokeLater(() -> {
+          ui.getController().showBlockingDialogBox("Reconnecting... Please wait.");
+        });
+        
         while (attempts < maxAttempts && !reconnected) {
             System.out.println("Attempting to reconnect... (Attempt " + (attempts + 1) + ")");
             try {
               if (attempts > 0) {
                 Thread.sleep(5000);
               }
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                  ui.getController().showBlockingDialogBox("Reconnecting... Please wait.");
-                });
 
-                if(!connectToWebSocket()){
-                  javax.swing.SwingUtilities.invokeLater(() -> {
-                    ui.getController().closeBlockingDialogBox();
-                    ui.showErrorMessage("Failed to connect to WebSocket.");
-                  });
-                  throw new Exception("Failed to connect to WebSocket.");
-                }
-                // connected with socket
-                if (session != null && session.isConnected()) {
-                  if(!joinDocument(sessionCode)){
-                      System.out.println("Failed to join document after reconnection.");
-                      javax.swing.SwingUtilities.invokeLater(() -> {
-                        ui.getController().closeBlockingDialogBox();
-                        ui.showErrorMessage("Failed to join document after reconnection.");
-                      });
-                      break;
-                  }
-                    
-                  reconnected = true;
-
-                  for (int i = 0; i < bufferedOperations.size(); i++) {
-                      sendOperations(bufferedOperations.get(i), true);
-                      onSocketOperations(bufferedOperations.get(i), true);
-                  }
-                  bufferedOperations.clear();
+              if(!connectToWebSocket()){
+                System.out.println("Failed to connect to WebSocket. Retrying...");
+                // Don't close dialog or show error yet, we'll keep trying
+                throw new Exception("Failed to connect to WebSocket.");
+              }
               
-                  // Notify the UI that all operations have been sent
-                  javax.swing.SwingUtilities.invokeLater(() -> {
-                      ui.getController().closeBlockingDialogBox();
-                      ui.showMessage("Reconnected successfully!");
-                      ui.getTopBarPanel().clearDisconnectedMark();
-                      // ui.getSidebarPanel().updateActiveUsers(Collections.emptyList());
-                  });
+              // connected with socket
+              if (session != null && session.isConnected()) {
+                if(!joinDocument(sessionCode)){
+                    System.out.println("Failed to join document after reconnection. Retrying...");
+                    // Don't show error message yet, will try again
+                    continue;
                 }
+                  
+                reconnected = true;
+
+                for (int i = 0; i < bufferedOperations.size(); i++) {
+                    sendOperations(bufferedOperations.get(i), true);
+                    onSocketOperations(bufferedOperations.get(i), true);
+                }
+                bufferedOperations.clear();
+            
+                // Notify the UI that all operations have been sent
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ui.getController().closeBlockingDialogBox();
+                    ui.showMessage("Reconnected successfully!");
+                    ui.getTopBarPanel().clearDisconnectedMark();
+                });
+              }
             } catch (Exception e) {
                 System.out.println("Reconnection attempt failed: " + e.getMessage());
             }
@@ -373,6 +370,7 @@ public class MyStompClient {
         if (!reconnected) {
             // Final notification after all attempts fail
             javax.swing.SwingUtilities.invokeLater(() -> {
+                ui.getController().closeBlockingDialogBox();
                 ui.showErrorMessage("Could not reconnect after " + maxAttempts + " attempts");
             });
             ui.getMainPanel().removeDocument();
